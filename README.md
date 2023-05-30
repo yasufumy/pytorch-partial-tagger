@@ -16,10 +16,10 @@ from partial_tagger.utils import Metric, create_tag
 ```
 
 Prepare your own datasets.
-Each item of dataset must have a string and tags. A string represents the `text` below.
+Each item of dataset must have a string and tags. A string represents `text` below.
 Tags represent a collection of tags, where each tag has a start, a length, and a label, which are defined as `tags` below.
 A start represents a position in `text` where a tag starts.
-A length represents a distance in `text` between between the beginning of a tag and the end of a tag.
+A length represents a distance in `text` between the beginning of a tag and the end of a tag.
 A label represents what you want to assign to a span of `text` defined by a start and a length.
 
 ```py
@@ -44,7 +44,7 @@ Here, you would train your tagger and evaluate its performance.
 You could train your own tagger by initializing `Trainer` and passing datasets to it.
 After training, `trainer` gives you `Recognizer` object which predicts character-based tags from given texts.
 
-Then you could evaluate the performance of your tagger using `Metric` as below.
+You could evaluate the performance of your tagger using `Metric` as below.
 
 
 ```py
@@ -56,7 +56,8 @@ recognizer = trainer(train_dataset, validation_dataset, device)
 
 texts, ground_truths = zip(*test_dataset, strict=True)
 
-predictions = recognizer(texts)
+batch_size = 15
+predictions = recognizer(texts, batch_size, device)
 
 metric = Metric()
 metric(predictions, ground_truths)
