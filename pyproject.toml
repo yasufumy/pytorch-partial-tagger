@@ -12,6 +12,11 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
 dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
+]
 
 [project.optional-dependencies]
 dev = [
