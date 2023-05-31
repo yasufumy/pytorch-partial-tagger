@@ -1,8 +1,9 @@
 import pytest
 import torch
+from transformers import AutoTokenizer
+
 from partial_tagger.data import CharBasedTags, LabelSet, Span, Tag
 from partial_tagger.data.batch import TransformerBatchFactory
-from transformers import AutoTokenizer
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 import pytest
+
 from partial_tagger.data import LabelSet, Span, TokenizedText
 
 

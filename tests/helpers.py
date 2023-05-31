@@ -2,6 +2,7 @@ from itertools import product
 from typing import Generator, Tuple
 
 import torch
+
 from partial_tagger.crf import NINF
 from partial_tagger.crf import functional as F
 
