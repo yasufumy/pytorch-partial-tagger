@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from partial_tagger.crf import NINF
 
 

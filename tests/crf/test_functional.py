@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+
 from partial_tagger.crf import NINF
 from partial_tagger.crf import functional as F
 
