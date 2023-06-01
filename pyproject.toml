@@ -44,11 +44,9 @@ path = "src/partial_tagger/__about__.py"
 
 [tool.black]
 line-length = 88
-target-version = ["py310"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
 select = [
   "E",  # pycodestyle errors
   "W",  # pycodestyle warnings
@@ -58,6 +56,9 @@ select = [
   "B",  # flake8-bugbear
 ]
 src = ["src"]
+
+[tool.ruff.isort]
+known-third-party = ["partial-tagger"]
 
 [tool.ruff.mccabe]
 max-complexity = 18
