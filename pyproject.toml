@@ -8,12 +8,14 @@ dependencies = [
     "transformers>=4.29.2",
     "torch>=2.0.1",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 readme = "README.md"
 license = {text = "MIT"}
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11"
 ]
