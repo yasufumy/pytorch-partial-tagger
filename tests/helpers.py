@@ -31,9 +31,7 @@ def compute_log_normalizer_by_brute_force(log_potentials: torch.Tensor) -> torch
     for b in range(batch_size):
         for tag_indices in iterate_possible_tag_indices(sequence_length + 1, num_tags):
             tag_indices_score = torch.tensor(0.0)
-            for i, (j, k) in enumerate(
-                zip(tag_indices[:-1], tag_indices[1:], strict=True)
-            ):
+            for i, (j, k) in enumerate(zip(tag_indices[:-1], tag_indices[1:])):
                 tag_indices_score += log_potentials[b, i, j, k]
             log_Z[b] = torch.logaddexp(log_Z[b], tag_indices_score)
     return log_Z
@@ -51,9 +49,7 @@ def compute_best_tag_indices_by_brute_force(
             tag_indices_score = (
                 log_potentials[b, 0, tag_indices[0], tag_indices[0]].detach().clone()
             )
-            for i, (j, k) in enumerate(
-                zip(tag_indices[:-1], tag_indices[1:], strict=True), 1
-            ):
+            for i, (j, k) in enumerate(zip(tag_indices[:-1], tag_indices[1:]), 1):
                 tag_indices_score += log_potentials[b, i, j, k]
             if tag_indices_score.gt(max_score):
                 # Ignore the dummy initial state
@@ -116,7 +112,7 @@ def check_sequence_score_mask(
         # only (i, j) is True, otherwise False
         tags = tag_indices[b, :real_sequence_length].tolist()
         tags = [tags[0]] + tags
-        for pos, (i, j) in enumerate(zip(tags[:-1], tags[1:], strict=True)):
+        for pos, (i, j) in enumerate(zip(tags[:-1], tags[1:])):
             if not used_mask[b, pos, i, j]:
                 return False
             for x in range(num_tags):
@@ -145,7 +141,7 @@ def check_constrained_log_potentials(
     for b, real_sequence_length in enumerate(lengths):
         tags = tag_indices[b, :real_sequence_length].tolist()
         tags = [tags[0]] + tags
-        for pos, (i, j) in enumerate(zip(tags[:-1], tags[1:], strict=True)):
+        for pos, (i, j) in enumerate(zip(tags[:-1], tags[1:])):
             if i == partial_index and j == partial_index:
                 x = constrained_log_potentials[b, pos]
                 y = log_potentials[b, pos]

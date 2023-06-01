@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from bisect import bisect_left
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -152,7 +154,7 @@ class LabelSet:
             )
         ]
 
-        self.__label_ids = dict(zip(self.__labels, self.__start_indices, strict=True))
+        self.__label_ids = dict(zip(self.__labels, self.__start_indices))
 
     def get_outside_index(self) -> int:
         return 0

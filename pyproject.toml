@@ -8,12 +8,14 @@ dependencies = [
     "transformers>=4.29.2",
     "torch>=2.0.1",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 readme = "README.md"
 license = {text = "MIT"}
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11"
 ]
@@ -42,11 +44,9 @@ path = "src/partial_tagger/__about__.py"
 
 [tool.black]
 line-length = 88
-target-version = ["py310"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
 select = [
   "E",  # pycodestyle errors
   "W",  # pycodestyle warnings
@@ -56,6 +56,9 @@ select = [
   "B",  # flake8-bugbear
 ]
 src = ["src"]
+
+[tool.ruff.isort]
+known-third-party = ["partial-tagger"]
 
 [tool.ruff.mccabe]
 max-complexity = 18
