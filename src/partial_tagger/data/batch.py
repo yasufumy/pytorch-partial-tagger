@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from itertools import groupby
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from transformers.tokenization_utils import PreTrainedTokenizer
@@ -8,15 +10,17 @@ from transformers.tokenization_utils import PreTrainedTokenizer
 from ..crf.functional import to_tag_bitmap
 from . import CharBasedTags, LabelSet, Span, SubwordBasedTags, Tag, TokenizedText
 
-Texts = tuple[str, ...]
-TokenizedTexts = tuple[TokenizedText, ...]
+# https://bugs.python.org/issue45117
+# type alias for tuple, dict, list is no longer supported in py38.
+Texts = Tuple[str, ...]
+TokenizedTexts = Tuple[TokenizedText, ...]
 
-CharBasedTagsCollection = tuple[CharBasedTags, ...]
-SubwordBasedTagsCollection = tuple[SubwordBasedTags, ...]
+CharBasedTagsCollection = Tuple[CharBasedTags, ...]
+SubwordBasedTagsCollection = Tuple[SubwordBasedTags, ...]
 
-Dataset = list[tuple[str, CharBasedTags]]
+Dataset = List[Tuple[str, CharBasedTags]]
 
-TaggerInputs = dict[str, torch.Tensor]
+TaggerInputs = Dict[str, torch.Tensor]
 
 
 def pad(batch: list[list[int]], fill_value: int) -> torch.Tensor:
@@ -53,7 +57,7 @@ class TagFactory:
         batched_tags = []
 
         for text, indices in zip(
-            self.__tokenized_texts, unpad(tag_indices, padding_index), strict=True
+            self.__tokenized_texts, unpad(tag_indices, padding_index)
         ):
             tags = []
             now = 0
@@ -81,7 +85,7 @@ class TagFactory:
         tag_indices = []
         label_set = self.__label_set
 
-        for text, tags in zip(self.__tokenized_texts, tags_collection, strict=True):
+        for text, tags in zip(self.__tokenized_texts, tags_collection):
             indices = [unknown_index] * text.num_tokens
 
             for token_index in range(text.num_tokens):
@@ -215,7 +219,7 @@ class TransformerBatchFactory(BaseBatchFactory):
 
         tokenized_texts = []
         for tokenized_text_length, mapping, text in zip(
-            tokenized_text_lengths, mappings, texts, strict=True
+            tokenized_text_lengths, mappings, texts
         ):
             char_spans = tuple(
                 Span(start, end - start) if start != end else None
@@ -250,5 +254,5 @@ class Collator:
         self.batch_factory = batch_factory
 
     def __call__(self, examples: Dataset) -> tuple[Batch, CharBasedTagsCollection]:
-        texts, tags_collection = zip(*examples, strict=True)
+        texts, tags_collection = zip(*examples)
         return self.batch_factory.create(texts), tags_collection
