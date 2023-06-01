@@ -156,6 +156,12 @@ class LabelSet:
 
         self.__label_ids = dict(zip(self.__labels, self.__start_indices))
 
+    def __contains__(self, label: str) -> bool:
+        i = bisect_left(self.__labels, label)
+        if i >= len(self.__labels):
+            return False
+        return self.__labels[i] == label
+
     def get_outside_index(self) -> int:
         return 0
 

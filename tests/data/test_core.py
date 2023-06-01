@@ -60,6 +60,24 @@ def label_set() -> LabelSet:
     return LabelSet({"ORG", "PER"})
 
 
+@pytest.mark.parametrize(
+    "label, expected",
+    [
+        ("ORG", True),
+        ("PER", True),
+        ("PERSON", False),
+        ("LOCATION", False),
+        ("ORGANIZE", False),
+    ],
+)
+def test_membership_check_is_valid(
+    label_set: LabelSet, label: str, expected: bool
+) -> None:
+    is_member = label in label_set
+
+    assert is_member == expected
+
+
 def test_tokens_are_valid(tokenized_text: TokenizedText) -> None:
     token_indices = [1, 2, 3, 4, 5, 6, 7, 8]
     expected = ["Tok", "yo", "is", "the", "capital", "of", "Japan", "."]
