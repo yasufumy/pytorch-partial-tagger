@@ -3,18 +3,19 @@ import torch
 from transformers import AutoTokenizer
 
 from partial_tagger.data import CharBasedTags, LabelSet, Span, Tag
-from partial_tagger.data.batch import TransformerBatchFactory
+from partial_tagger.data.batch import BatchFactory
+from partial_tagger.data.batch.text import TransformerTokenizer
 
 
 @pytest.fixture
-def batch_factory() -> TransformerBatchFactory:
-    return TransformerBatchFactory(
-        AutoTokenizer.from_pretrained("distilroberta-base"),
+def batch_factory() -> BatchFactory:
+    return BatchFactory(
+        TransformerTokenizer(AutoTokenizer.from_pretrained("distilroberta-base")),
         LabelSet({"LOC", "MISC", "ORG", "PER"}),
     )
 
 
-def test_char_based_tags_are_valid(batch_factory: TransformerBatchFactory) -> None:
+def test_char_based_tags_are_valid(batch_factory: BatchFactory) -> None:
     text = "Tokyo is the capital of Japan."
     tag_indices = torch.tensor([[0, 1, 3, 0, 0, 0, 0, 4, 0, 0]])
 
@@ -29,7 +30,7 @@ def test_char_based_tags_are_valid(batch_factory: TransformerBatchFactory) -> No
     assert char_based_tags_collection[0] == expected
 
 
-def test_tag_indices_are_valid(batch_factory: TransformerBatchFactory) -> None:
+def test_tag_indices_are_valid(batch_factory: BatchFactory) -> None:
     text = "Tokyo is the capital of Japan."
     tags = CharBasedTags((Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")), text=text)
     unknown_index = -100

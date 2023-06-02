@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from transformers import PreTrainedModel
 
-from .data.batch import TaggerInputs
+from .data.batch.text import TaggerInputs
 
 
 class BaseEmbedder(nn.Module, metaclass=ABCMeta):

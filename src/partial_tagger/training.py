@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 
 from .crf import functional as F
 from .data import LabelSet
-from .data.batch import Batch, CharBasedTagsCollection, Dataset
+from .data.batch import Batch, Dataset
+from .data.batch.tag import CharBasedTagsCollection
 from .recognizer import Recognizer
 from .utils import Metric, create_collator, create_tagger
 

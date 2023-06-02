@@ -3,7 +3,9 @@ from __future__ import annotations
 from transformers import AutoModel, AutoTokenizer
 
 from .data import LabelSet, Span, Tag
-from .data.batch import CharBasedTagsCollection, Collator, TransformerBatchFactory
+from .data.batch import BatchFactory, Collator
+from .data.batch.tag import CharBasedTagsCollection
+from .data.batch.text import TransformerTokenizer
 from .decoders.viterbi import Contrainer, ViterbiDecoder
 from .embedders import TransformerEmbedder
 from .encoders.linear import LinearEncoder
@@ -63,8 +65,9 @@ def create_collator(
         label_set: A LabelSet object.
         tokenizer_args: A dictionary representing arguments passed to tokenizer.
     """
-    batch_factory = TransformerBatchFactory(
-        AutoTokenizer.from_pretrained(model_name), label_set, tokenizer_args
+    batch_factory = BatchFactory(
+        TransformerTokenizer(AutoTokenizer.from_pretrained(model_name), tokenizer_args),
+        label_set,
     )
     return Collator(batch_factory)
 
