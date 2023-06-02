@@ -4,7 +4,7 @@ import torch
 from torch.nn import Module
 
 from .crf.nn import CRF
-from .data.batch import TaggerInputs
+from .data.batch.text import TaggerInputs
 from .decoders import ViterbiDecoder
 from .embedders import BaseEmbedder
 from .encoders import BaseEncoder

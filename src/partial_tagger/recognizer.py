@@ -3,7 +3,9 @@ from typing import cast
 import torch
 from torch.utils.data import DataLoader
 
-from .data.batch import BaseBatchFactory, Batch, CharBasedTagsCollection, Texts
+from .data.batch import Batch, BatchFactory
+from .data.batch.tag import CharBasedTagsCollection
+from .data.batch.text import Texts
 from .tagger import SequenceTagger
 
 
@@ -11,7 +13,7 @@ class Recognizer:
     def __init__(
         self,
         tagger: SequenceTagger,
-        batch_factory: BaseBatchFactory,
+        batch_factory: BatchFactory,
         padding_index: int,
     ):
         self.__tagger = tagger
