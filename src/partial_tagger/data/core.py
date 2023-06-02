@@ -179,6 +179,9 @@ class LabelSet:
     def get_unit_index(self, label: str) -> int:
         return self.get_start_index(label) + 3
 
+    def get_labels(self) -> list:
+        return self.__labels
+
     def get_label_size(self) -> int:
         return len(self.__labels)
 
