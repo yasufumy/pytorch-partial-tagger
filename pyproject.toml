@@ -57,9 +57,6 @@ select = [
 ]
 src = ["src"]
 
-[tool.ruff.isort]
-known-third-party = ["partial-tagger"]
-
 [tool.ruff.mccabe]
 max-complexity = 18
 
