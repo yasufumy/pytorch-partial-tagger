@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoTokenizer
 
-from .data import LabelSet, Span, Tag
-from .data.batch import BatchFactory, Collator
-from .data.batch.tag import CharBasedTagsCollection
-from .data.batch.text import TransformerTokenizer
+from .data import Dataset, LabelSet, Span, Tag
+from .data.batch.tag import CharBasedTagsBatch
+from .data.batch.text import BaseTokenizer, TextBatch, TransformerTokenizer
 from .decoders.viterbi import Contrainer, ViterbiDecoder
-from .embedders import TransformerEmbedder
-from .encoders.linear import LinearEncoder
+from .encoders.transformer import EncoderType, create_encoder
 from .tagger import SequenceTagger
 
 
@@ -27,7 +25,10 @@ def create_tag(start: int, length: int, label: str) -> Tag:
 
 
 def create_tagger(
-    model_name: str, label_set: LabelSet, padding_index: int
+    model_name: str,
+    label_set: LabelSet,
+    padding_index: int,
+    encoder_type: EncoderType = "default",
 ) -> SequenceTagger:
     """Creates a Transformer tagger.
 
@@ -39,10 +40,8 @@ def create_tagger(
     Returns:
         A tagger.
     """
-    model = AutoModel.from_pretrained(model_name)
     tagger = SequenceTagger(
-        TransformerEmbedder(model),
-        LinearEncoder(model.config.hidden_size, label_set.get_tag_size()),
+        create_encoder(encoder_type, model_name, label_set.get_tag_size(), 0.2),
         ViterbiDecoder(
             padding_index,
             Contrainer(
@@ -55,21 +54,27 @@ def create_tagger(
     return tagger
 
 
-def create_collator(
-    model_name: str, label_set: LabelSet, tokenizer_args: dict | None = None
-) -> Collator:
-    """Creates a collator.
+def create_tokenizer(
+    model_name: str, tokenizer_args: dict | None = None
+) -> TransformerTokenizer:
+    """Creates a transformer tokenizer.
 
     Args:
         model_name: A string representing a transformer's model name.
-        label_set: A LabelSet object.
         tokenizer_args: A dictionary representing arguments passed to tokenizer.
     """
-    batch_factory = BatchFactory(
-        TransformerTokenizer(AutoTokenizer.from_pretrained(model_name), tokenizer_args),
-        label_set,
+    return TransformerTokenizer(
+        AutoTokenizer.from_pretrained(model_name), tokenizer_args
     )
-    return Collator(batch_factory)
+
+
+class Collator:
+    def __init__(self, tokenizer: BaseTokenizer):
+        self.__tokenizer = tokenizer
+
+    def __call__(self, examples: Dataset) -> tuple[TextBatch, CharBasedTagsBatch]:
+        texts, tags_batch = zip(*examples)
+        return self.__tokenizer(texts), tags_batch
 
 
 class Metric:
@@ -80,8 +85,8 @@ class Metric:
 
     def __call__(
         self,
-        predictions: CharBasedTagsCollection,
-        ground_truths: CharBasedTagsCollection,
+        predictions: CharBasedTagsBatch,
+        ground_truths: CharBasedTagsBatch,
     ) -> None:
         for tags1, tags2 in zip(predictions, ground_truths):
             tag_set1 = {(tag1.start, tag1.length, tag1.label) for tag1 in tags1}
