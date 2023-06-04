@@ -6,7 +6,6 @@ from torch.nn import Module
 from .crf.nn import CRF
 from .data.batch.text import TaggerInputs
 from .decoders import ViterbiDecoder
-from .embedders import BaseEmbedder
 from .encoders import BaseEncoder
 
 
@@ -14,17 +13,13 @@ class SequenceTagger(Module):
     """Sequence tagger.
 
     Args:
-        embedder: An embedder.
         encoder: An encoder.
         decoder: A decoder.
     """
 
-    def __init__(
-        self, embedder: BaseEmbedder, encoder: BaseEncoder, decoder: ViterbiDecoder
-    ):
+    def __init__(self, encoder: BaseEncoder, decoder: ViterbiDecoder):
         super(SequenceTagger, self).__init__()
 
-        self.embedder = embedder
         self.encoder = encoder
         self.crf = CRF(encoder.get_hidden_size())
         self.decoder = decoder
@@ -44,8 +39,7 @@ class SequenceTagger(Module):
             The float tensor representing log potentials and
             the integer tensor representing tag sequence.
         """
-        embeddings = self.embedder(inputs)
-        log_potentials = self.crf(self.encoder(embeddings, mask), mask)
+        log_potentials = self.crf(self.encoder(inputs), mask)
         tag_indices = self.decoder(log_potentials, mask)
         return log_potentials, tag_indices
 
