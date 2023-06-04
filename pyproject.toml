@@ -7,6 +7,7 @@ authors = [
 dependencies = [
     "transformers>=4.29.2",
     "torch>=2.0.1",
+    "spacy>=3.5.3",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
