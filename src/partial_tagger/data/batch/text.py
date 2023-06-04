@@ -12,7 +12,7 @@ Texts = Tuple[str, ...]
 TaggerInputs = Dict[str, torch.Tensor]
 
 
-class TokenizedTexts:
+class TextBatch:
     def __init__(
         self,
         tokenized_texts: tuple[TokenizedText, ...],
@@ -36,7 +36,7 @@ class TokenizedTexts:
 
 class BaseTokenizer(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, texts: Texts) -> TokenizedTexts:
+    def __call__(self, texts: Texts) -> TextBatch:
         raise NotImplementedError
 
 
@@ -57,7 +57,7 @@ class TransformerTokenizer(BaseTokenizer):
         }
         self.__tokenizer_args["return_offsets_mapping"] = True
 
-    def __call__(self, texts: Texts) -> TokenizedTexts:
+    def __call__(self, texts: Texts) -> TextBatch:
         batch_encoding = self.__tokenizer(texts, **self.__tokenizer_args)
 
         mappings = batch_encoding.pop("offset_mapping").tolist()
@@ -89,4 +89,4 @@ class TransformerTokenizer(BaseTokenizer):
         mask = torch.tensor(
             [[True] * length + [False] * (max_length - length) for length in lengths]
         )
-        return TokenizedTexts(tuple(tokenized_texts), batch_encoding, mask)
+        return TextBatch(tuple(tokenized_texts), batch_encoding, mask)

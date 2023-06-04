@@ -23,4 +23,4 @@ class SpacyMatcher(BaseMatcher):
         tags = []
         for ent in doc.ents:
             tags.append(Tag(Span(ent.start_char, len(ent.text)), ent.label_))
-        return CharBasedTags(tags, text)
+        return CharBasedTags(tuple(tags), text)

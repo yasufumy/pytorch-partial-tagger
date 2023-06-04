@@ -9,11 +9,12 @@ import torch
 from torch.utils.data import DataLoader
 
 from .crf import functional as F
-from .data import LabelSet
-from .data.batch import Batch, Dataset
-from .data.batch.tag import CharBasedTagsCollection
+from .data import Dataset, LabelSet
+from .data.batch.tag import CharBasedTagsBatch, TagFactory
+from .data.batch.text import TextBatch
+from .encoders.transformer import EncoderType
 from .recognizer import Recognizer
-from .utils import Metric, create_collator, create_tagger
+from .utils import Collator, Metric, create_tagger, create_tokenizer
 
 
 class SlantedTriangular:
@@ -75,6 +76,7 @@ class Trainer:
         padding_index: int = -1,
         unknown_index: int = -100,
         tokenizer_args: dict | None = None,
+        encoder_type: EncoderType = "default",
     ):
         self.__model_name = model_name
         self.__batch_size = batch_size
@@ -84,6 +86,7 @@ class Trainer:
         self.__padding_index = padding_index
         self.__unknown_index = unknown_index
         self.__tokenizer_args = tokenizer_args
+        self.__encoder_type = encoder_type
 
     def __call__(
         self,
@@ -106,11 +109,14 @@ class Trainer:
         label_set = LabelSet(labels)
 
         # Create a tagger
-        tagger = create_tagger(self.__model_name, label_set, self.__padding_index)
+        tagger = create_tagger(
+            self.__model_name, label_set, self.__padding_index, self.__encoder_type
+        )
         tagger.to(device)
 
         # Create a collator
-        collator = create_collator(self.__model_name, label_set, self.__tokenizer_args)
+        tokenizer = create_tokenizer(self.__model_name, self.__tokenizer_args)
+        collator = Collator(tokenizer)
 
         train_dataloader = DataLoader(
             train_dataset,  # type:ignore
@@ -131,31 +137,31 @@ class Trainer:
             optimizer,
             SlantedTriangular(len(train_dataloader) * self.__num_epochs),
         )
-        best_f1_score = 0.0
+        best_f1_score = float("-inf")
         best_tagger_state = io.BytesIO()
 
         for epoch in range(1, self.__num_epochs + 1):
             epoch_loss = 0.0
             tagger.train()
 
-            for batch, ground_truths in train_dataloader:
-                batch = cast(Batch, batch)
-                ground_truths = cast(CharBasedTagsCollection, ground_truths)
+            for text_batch, tags_batch in train_dataloader:
+                text_batch = cast(TextBatch, text_batch)
+                tags_batch = cast(CharBasedTagsBatch, tags_batch)
 
                 optimizer.zero_grad()
 
-                log_potentials, _ = tagger(
-                    batch.get_tagger_inputs(device), batch.get_mask(device)
-                )
+                mask = text_batch.get_mask(device)
+                log_potentials, _ = tagger(text_batch.get_tagger_inputs(device), mask)
 
-                tags_bitmap = batch.create_tag_bitmap(
-                    ground_truths, device, self.__padding_index, self.__unknown_index
+                tag_factory = TagFactory(text_batch.tokenized_texts, label_set)
+                tags_bitmap = tag_factory.create_tag_bitmap(
+                    tags_batch, device, self.__padding_index, self.__unknown_index
                 )
 
                 loss = expected_entity_ratio_loss(
                     log_potentials,
                     tags_bitmap,
-                    batch.get_mask(device),
+                    mask,
                     label_set.get_outside_index(),
                 )
                 loss.backward()
@@ -167,23 +173,25 @@ class Trainer:
                 optimizer.step()
                 schedular.step()
 
-                epoch_loss += loss.item() * batch.size
+                epoch_loss += loss.item() * text_batch.size
 
             tagger.eval()
             metric = Metric()
-            for batch, ground_truths in validation_dataloader:
-                batch = cast(Batch, batch)
-                ground_truths = cast(CharBasedTagsCollection, ground_truths)
+            for text_batch, tags_batch in validation_dataloader:
+                text_batch = cast(TextBatch, text_batch)
+                tags_batch = cast(CharBasedTagsBatch, tags_batch)
 
                 tag_indices = tagger.predict(
-                    batch.get_tagger_inputs(device), batch.get_mask(device)
+                    text_batch.get_tagger_inputs(device),
+                    text_batch.get_mask(device),
                 )
 
-                predictions = batch.create_char_based_tags(
+                tag_factory = TagFactory(text_batch.tokenized_texts, label_set)
+                predictions = tag_factory.create_char_based_tags(
                     tag_indices, self.__padding_index
                 )
 
-                metric(predictions, ground_truths)
+                metric(predictions, tags_batch)
 
             scores = metric.get_scores()
 
@@ -204,4 +212,4 @@ class Trainer:
         best_tagger_state.seek(0)
         tagger.load_state_dict(torch.load(best_tagger_state))
 
-        return Recognizer(tagger, collator.batch_factory, self.__padding_index)
+        return Recognizer(tagger, tokenizer, label_set, self.__padding_index)

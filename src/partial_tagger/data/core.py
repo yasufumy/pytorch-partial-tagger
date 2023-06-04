@@ -106,7 +106,7 @@ class TokenizedText:
 
 
 @dataclass(frozen=True)
-class SubwordBasedTags:
+class TokenBasedTags:
     tags: tuple[Tag, ...]
     tokenized_text: TokenizedText
 
