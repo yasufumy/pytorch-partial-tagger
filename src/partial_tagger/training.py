@@ -10,11 +10,14 @@ from torch.utils.data import DataLoader
 
 from .crf import functional as F
 from .data import Dataset, LabelSet
-from .data.batch.tag import CharBasedTagsBatch, TagFactory
-from .data.batch.text import TextBatch
-from .encoders.transformer import EncoderType
+from .data.batch import Collator
+from .data.batch.tag import TagsBatch
+from .data.batch.text import BaseTokenizer, TextBatch
+from .decoders.viterbi import Contrainer, ViterbiDecoder
+from .encoders import BaseEncoderFactory
+from .metric import Metric
 from .recognizer import Recognizer
-from .utils import Collator, Metric, create_tagger, create_tokenizer
+from .tagger import SequenceTagger
 
 
 class SlantedTriangular:
@@ -68,25 +71,27 @@ def expected_entity_ratio_loss(
 class Trainer:
     def __init__(
         self,
-        model_name: str = "roberta-base",
+        tokenizer: BaseTokenizer,
+        encoder_factory: BaseEncoderFactory,
         batch_size: int = 15,
         num_epochs: int = 20,
         learning_rate: float = 2e-5,
         gradient_clip_value: float = 5.0,
+        target_entity_ratio: float = 0.15,
+        entity_ratio_margin: float = 0.05,
+        balancing_coefficient: int = 10,
         padding_index: int = -1,
-        unknown_index: int = -100,
-        tokenizer_args: dict | None = None,
-        encoder_type: EncoderType = "default",
     ):
-        self.__model_name = model_name
+        self.__tokenizer = tokenizer
+        self.__encoder_factory = encoder_factory
         self.__batch_size = batch_size
         self.__num_epochs = num_epochs
         self.__learning_rate = learning_rate
         self.__gradient_clip_value = gradient_clip_value
+        self.__target_entity_ratio = target_entity_ratio
+        self.__entity_ratio_margin = entity_ratio_margin
+        self.__balancing_coefficient = balancing_coefficient
         self.__padding_index = padding_index
-        self.__unknown_index = unknown_index
-        self.__tokenizer_args = tokenizer_args
-        self.__encoder_type = encoder_type
 
     def __call__(
         self,
@@ -108,15 +113,20 @@ class Trainer:
                     labels.add(tag.label)
         label_set = LabelSet(labels)
 
-        # Create a tagger
-        tagger = create_tagger(
-            self.__model_name, label_set, self.__padding_index, self.__encoder_type
+        tagger = SequenceTagger(
+            self.__encoder_factory.create(label_set),
+            ViterbiDecoder(
+                self.__padding_index,
+                Contrainer(
+                    label_set.get_start_states(),
+                    label_set.get_end_states(),
+                    label_set.get_transitions(),
+                ),
+            ),
         )
         tagger.to(device)
 
-        # Create a collator
-        tokenizer = create_tokenizer(self.__model_name, self.__tokenizer_args)
-        collator = Collator(tokenizer)
+        collator = Collator(self.__tokenizer, label_set)
 
         train_dataloader = DataLoader(
             train_dataset,  # type:ignore
@@ -146,23 +156,25 @@ class Trainer:
 
             for text_batch, tags_batch in train_dataloader:
                 text_batch = cast(TextBatch, text_batch)
-                tags_batch = cast(CharBasedTagsBatch, tags_batch)
+                tags_batch = cast(TagsBatch, tags_batch)
+
+                text_batch.to(device)
+                tags_batch.to(device)
 
                 optimizer.zero_grad()
 
-                mask = text_batch.get_mask(device)
-                log_potentials, _ = tagger(text_batch.get_tagger_inputs(device), mask)
+                mask = text_batch.mask
 
-                tag_factory = TagFactory(text_batch.tokenized_texts, label_set)
-                tags_bitmap = tag_factory.create_tag_bitmap(
-                    tags_batch, device, self.__padding_index, self.__unknown_index
-                )
+                log_potentials, _ = tagger(text_batch.tagger_inputs, mask)
 
                 loss = expected_entity_ratio_loss(
                     log_potentials,
-                    tags_bitmap,
+                    tags_batch.get_tag_bitmap(),
                     mask,
                     label_set.get_outside_index(),
+                    self.__target_entity_ratio,
+                    self.__entity_ratio_margin,
+                    self.__balancing_coefficient,
                 )
                 loss.backward()
 
@@ -179,19 +191,18 @@ class Trainer:
             metric = Metric()
             for text_batch, tags_batch in validation_dataloader:
                 text_batch = cast(TextBatch, text_batch)
-                tags_batch = cast(CharBasedTagsBatch, tags_batch)
+                tags_batch = cast(TagsBatch, tags_batch)
 
-                tag_indices = tagger.predict(
-                    text_batch.get_tagger_inputs(device),
-                    text_batch.get_mask(device),
+                text_batch.to(device)
+                tags_batch.to(device)
+
+                tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
+
+                predictions = text_batch.create_char_based_tags(
+                    tag_indices, label_set, tagger.padding_index
                 )
 
-                tag_factory = TagFactory(text_batch.tokenized_texts, label_set)
-                predictions = tag_factory.create_char_based_tags(
-                    tag_indices, self.__padding_index
-                )
-
-                metric(predictions, tags_batch)
+                metric(predictions, tags_batch.char_based)
 
             scores = metric.get_scores()
 
@@ -212,4 +223,4 @@ class Trainer:
         best_tagger_state.seek(0)
         tagger.load_state_dict(torch.load(best_tagger_state))
 
-        return Recognizer(tagger, tokenizer, label_set, self.__padding_index)
+        return Recognizer(tagger, self.__tokenizer, label_set)

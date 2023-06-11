@@ -3,6 +3,7 @@ from __future__ import annotations
 from bisect import bisect_left
 from collections.abc import Iterator
 from dataclasses import dataclass
+from enum import Enum, auto
 
 
 @dataclass(frozen=True, eq=True)
@@ -26,24 +27,6 @@ class Tag:
     @property
     def length(self) -> int:
         return self.span.length
-
-
-@dataclass(frozen=True, eq=True)
-class CharBasedTags:
-    tags: tuple[Tag, ...]
-    text: str
-
-    def __iter__(self) -> Iterator[Tag]:
-        yield from self.tags
-
-    def __repr__(self) -> str:
-        tag_strs = []
-        for tag in self:
-            start = tag.start
-            end = tag.start + tag.length
-            tag_str = f"{self.text[start:end]} ({tag.label})"
-            tag_strs.append(tag_str)
-        return f"({', '.join(tag_strs)})"
 
 
 class TokenizedText:
@@ -105,6 +88,37 @@ class TokenizedText:
         )
 
 
+@dataclass(frozen=True, eq=True)
+class CharBasedTags:
+    tags: tuple[Tag, ...]
+    text: str
+
+    def __iter__(self) -> Iterator[Tag]:
+        yield from self.tags
+
+    def __repr__(self) -> str:
+        tag_strs = []
+        for tag in self:
+            start = tag.start
+            end = tag.start + tag.length
+            tag_str = f"{self.text[start:end]} ({tag.label})"
+            tag_strs.append(tag_str)
+        return f"({', '.join(tag_strs)})"
+
+    def convert_to_token_based(self, tokenized_text: TokenizedText) -> "TokenBasedTags":
+        if self.text != tokenized_text.get_text():
+            raise ValueError("The text doesn't match")
+
+        tags = []
+        for tag in self.tags:
+            start = tokenized_text.convert_to_token_index(tag.start)
+            end = tokenized_text.convert_to_token_index(tag.start + tag.length - 1)
+            length = end - start + 1
+            tags.append(Tag(Span(start, length), tag.label))
+
+        return TokenBasedTags(tuple(tags), tokenized_text)
+
+
 @dataclass(frozen=True)
 class TokenBasedTags:
     tags: tuple[Tag, ...]
@@ -125,7 +139,11 @@ class TokenBasedTags:
             tag_strs.append(f"{tag_str} ({tag.label})")
         return f"({', '.join(tag_strs)})"
 
-    def get_char_based_tags(self) -> CharBasedTags:
+    @property
+    def num_tokens(self) -> int:
+        return self.tokenized_text.num_tokens
+
+    def convert_to_char_based(self) -> CharBasedTags:
         tags = []
         for tag in self.tags:
             char_span = self.tokenized_text.convert_to_char_span(tag.span)
@@ -133,24 +151,84 @@ class TokenBasedTags:
                 tags.append(Tag(char_span, tag.label))
         return CharBasedTags(tuple(tags), self.tokenized_text.get_text())
 
+    def get_tag_indices(
+        self, label_set: LabelSet, unknown_index: int = -100
+    ) -> list[int]:
+        tag_indices = [unknown_index] * self.tokenized_text.num_tokens
+
+        for token_index in range(self.tokenized_text.num_tokens):
+            span = self.tokenized_text.get_char_span(token_index)
+            if span is None:
+                tag_indices[token_index] = label_set.get_outside_index()
+
+        for tag in self.tags:
+            start = tag.start
+            end = tag.start + tag.length - 1
+            if start == end:
+                tag_indices[start] = label_set.get_unit_index(tag.label)
+            else:
+                tag_indices[start] = label_set.get_start_index(tag.label)
+                tag_indices[start + 1 : end] = [
+                    label_set.get_inside_index(tag.label)
+                ] * (end - start - 1)
+                tag_indices[end] = label_set.get_end_index(tag.label)
+
+        return tag_indices
+
+    def get_tag_bitmap(self, label_set: LabelSet) -> list[list[bool]]:
+        tag_bitmap = [
+            [False] * label_set.get_tag_size() for _ in range(self.num_tokens)
+        ]
+        for token_index in range(self.num_tokens):
+            span = self.tokenized_text.get_char_span(token_index)
+            if span is None:
+                tag_bitmap[token_index][label_set.get_outside_index()] = True
+
+        for tag in sorted(
+            self,
+            key=lambda tag: (tag.start, tag.start + tag.length),
+        ):
+            start = tag.start
+            end = tag.start + tag.length - 1  # inclusive
+            if start == end:
+                tag_bitmap[start][label_set.get_unit_index(tag.label)] = True
+            else:
+                tag_bitmap[start][label_set.get_start_index(tag.label)] = True
+                for i in range(start + 1, end):
+                    tag_bitmap[i][label_set.get_inside_index(tag.label)] = True
+                tag_bitmap[end][label_set.get_end_index(tag.label)] = True
+
+        for bit in tag_bitmap:
+            if sum(bit) == 0:
+                bit[:] = [True] * label_set.get_tag_size()
+
+        return tag_bitmap
+
+
+class Status(Enum):
+    START = auto()
+    INSIDE = auto()
+    END = auto()
+    UNIT = auto()
+
 
 class LabelSet:
     def __init__(self, labels: set[str]):
         self.__labels = [*sorted(labels)]
-        self.__status_kind = 4  # start, inside, end, unit
+        self.__status_size = len(Status)  # start, inside, end, unit
 
         self.__start_indices = [
             *range(
                 1,
                 self.get_tag_size(),
-                self.__status_kind,
+                self.__status_size,
             )
         ]
         self.__unit_indices = [
             *range(
-                self.__status_kind,
+                self.__status_size,
                 self.get_tag_size(),
-                self.__status_kind,
+                self.__status_size,
             )
         ]
 
@@ -187,7 +265,7 @@ class LabelSet:
 
     def get_tag_size(self) -> int:
         # (start, inside, end, unit) * label + outside status
-        return self.__status_kind * self.get_label_size() + 1
+        return self.__status_size * self.get_label_size() + 1
 
     def get_label(self, index: int) -> str | None:
         if index < 0 or index >= self.get_tag_size():
@@ -197,6 +275,24 @@ class LabelSet:
             return None
 
         return self.__labels[bisect_left(self.__unit_indices, index)]
+
+    def get_status(self, index: int) -> Status | None:
+        if index < 0 or index >= self.get_tag_size():
+            raise ValueError("Invalid index.")
+
+        label = self.get_label(index)
+        if label is None:
+            return None
+        elif self.get_start_index(label) == index:
+            return Status.START
+        elif self.get_inside_index(label) == index:
+            return Status.INSIDE
+        elif self.get_end_index(label) == index:
+            return Status.END
+        elif self.get_unit_index(label) == index:
+            return Status.UNIT
+        else:
+            raise ValueError("Invalid index.")
 
     def get_start_states(self) -> list[bool]:
         states = [False] * self.get_tag_size()

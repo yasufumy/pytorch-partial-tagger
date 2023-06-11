@@ -1,42 +1,119 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Tuple
+from typing import Any
 
 import torch
 from transformers.tokenization_utils import PreTrainedTokenizer
 
-from ..core import Span, TokenizedText
+from ..core import (
+    CharBasedTags,
+    LabelSet,
+    Span,
+    Status,
+    Tag,
+    TokenBasedTags,
+    TokenizedText,
+)
 
-Texts = Tuple[str, ...]
-TaggerInputs = Dict[str, torch.Tensor]
+
+def create_token_based_tags(
+    tokenized_texts: tuple[TokenizedText, ...],
+    tag_indices: torch.Tensor,
+    label_set: LabelSet,
+    padding_index: int,
+) -> tuple[TokenBasedTags, ...]:
+    tag_indices_unpadded = tuple(
+        tuple(i for i in x if i != padding_index) for x in tag_indices.tolist()
+    )
+
+    if len(tag_indices_unpadded) != len(tokenized_texts):
+        raise ValueError("Batch size mismatch.")
+
+    tags_batch = []
+
+    for text, indices in zip(tokenized_texts, tag_indices_unpadded):
+        if text.num_tokens != len(indices):
+            raise ValueError("The number of tokens in text mismatch.")
+
+        tags = []
+        length = 0
+        for pos, index in enumerate(indices):
+            status = label_set.get_status(index)
+            label = label_set.get_label(index)
+            if status is None or label is None:
+                continue
+
+            if status == Status.UNIT:
+                tags.append(Tag(Span(pos, 1), label))
+            elif status == Status.END:
+                tags.append(Tag(Span(pos - length, length + 1), label))
+                length = 0
+            elif status == Status.START or status == Status.INSIDE:
+                length += 1
+            else:
+                raise ValueError("Invalid status.")
+
+        tags_batch.append(TokenBasedTags(tuple(tags), text))
+
+    return tuple(tags_batch)
 
 
 class TextBatch:
     def __init__(
         self,
         tokenized_texts: tuple[TokenizedText, ...],
-        tagger_inputs: TaggerInputs,
+        tagger_inputs: dict[str, torch.Tensor],
         mask: torch.Tensor,
+        device: torch.device | None = None,
     ):
         self.tokenized_texts = tokenized_texts
         self.__tagger_inputs = tagger_inputs
         self.__mask = mask
+        self.__device = device
 
     @property
     def size(self) -> int:
         return len(self.tokenized_texts)
 
-    def get_tagger_inputs(self, device: torch.device) -> TaggerInputs:
-        return {key: x.to(device) for key, x in self.__tagger_inputs.items()}
+    def to(self, device: torch.device) -> None:
+        self.__device = device
 
-    def get_mask(self, device: torch.device) -> torch.Tensor:
-        return self.__mask.to(device)
+    @property
+    def tagger_inputs(self) -> dict[str, torch.Tensor]:
+        if self.__device is not None:
+            return {key: x.to(self.__device) for key, x in self.__tagger_inputs.items()}
+        else:
+            return self.__tagger_inputs
+
+    @property
+    def mask(self) -> torch.Tensor:
+        if self.__device is not None:
+            return self.__mask.to(self.__device)
+        else:
+            return self.__mask
+
+    def create_char_based_tags(
+        self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
+    ) -> tuple[CharBasedTags, ...]:
+        return tuple(
+            tags.convert_to_char_based()
+            for tags in self.create_token_based_tags(
+                tag_indices, label_set, padding_index
+            )
+        )
+
+    def create_token_based_tags(
+        self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
+    ) -> tuple[TokenBasedTags, ...]:
+        return create_token_based_tags(
+            self.tokenized_texts, tag_indices, label_set, padding_index
+        )
 
 
 class BaseTokenizer(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, texts: Texts) -> TextBatch:
+    def __call__(self, texts: tuple[str, ...]) -> TextBatch:
         raise NotImplementedError
 
 
@@ -44,20 +121,25 @@ class TransformerTokenizer(BaseTokenizer):
     def __init__(
         self,
         tokenizer: PreTrainedTokenizer,
-        tokenizer_args: dict | None = None,
+        tokenizer_args: dict[str, Any] | None = None,
     ):
         if not tokenizer.is_fast:
-            raise ValueError("Only fast tokenizer is supported.")
+            raise ValueError("Only transformers.PreTrainedTokenizerFast is supported.")
 
         self.__tokenizer = tokenizer
-
         self.__tokenizer_args = tokenizer_args or {
             "padding": True,
             "return_tensors": "pt",
+            "return_offsets_mapping": True,
         }
-        self.__tokenizer_args["return_offsets_mapping"] = True
 
-    def __call__(self, texts: Texts) -> TextBatch:
+        if not self.__tokenizer_args.get("return_offsets_mapping", False):
+            raise ValueError("Set return_offsets_mapping to True")
+
+        if self.__tokenizer_args.get("return_tensors", "") != "pt":
+            raise ValueError("Set return_tensors to pt")
+
+    def __call__(self, texts: tuple[str, ...]) -> TextBatch:
         batch_encoding = self.__tokenizer(texts, **self.__tokenizer_args)
 
         mappings = batch_encoding.pop("offset_mapping").tolist()

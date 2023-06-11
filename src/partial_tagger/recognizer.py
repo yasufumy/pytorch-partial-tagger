@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 from typing import cast
 
 import torch
 from torch.utils.data import DataLoader
 
-from .data import LabelSet
-from .data.batch.tag import CharBasedTagsBatch, TagFactory
-from .data.batch.text import BaseTokenizer, TextBatch, Texts
+from .data import CharBasedTags, LabelSet
+from .data.batch.text import BaseTokenizer, TextBatch
 from .tagger import SequenceTagger
 
 
@@ -15,16 +16,14 @@ class Recognizer:
         tagger: SequenceTagger,
         tokenizer: BaseTokenizer,
         label_set: LabelSet,
-        padding_index: int,
     ):
         self.__tagger = tagger
         self.__tokenizer = tokenizer
         self.__label_set = label_set
-        self.__padding_index = padding_index
 
     def __call__(
-        self, texts: Texts, batch_size: int, device: torch.device
-    ) -> CharBasedTagsBatch:
+        self, texts: tuple[str, ...], batch_size: int, device: torch.device
+    ) -> tuple[CharBasedTags, ...]:
         dataloader = DataLoader(
             texts,  # type: ignore
             collate_fn=self.__tokenizer,
@@ -32,20 +31,20 @@ class Recognizer:
             shuffle=False,
         )
 
-        tagger = self.__tagger.eval()
+        tagger = self.__tagger.eval().to(device)
 
         predictions = []
         for text_batch in dataloader:
             text_batch = cast(TextBatch, text_batch)
 
-            tag_indices = tagger.predict(
-                text_batch.get_tagger_inputs(device),
-                text_batch.get_mask(device),
-            )
+            text_batch.to(device)
 
-            tag_factory = TagFactory(text_batch.tokenized_texts, self.__label_set)
+            tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
+
             predictions.extend(
-                tag_factory.create_char_based_tags(tag_indices, self.__padding_index)
+                text_batch.create_char_based_tags(
+                    tag_indices, self.__label_set, tagger.padding_index
+                )
             )
 
         return tuple(predictions)
