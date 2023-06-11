@@ -4,7 +4,6 @@ import torch
 from torch.nn import Module
 
 from .crf.nn import CRF
-from .data.batch.text import TaggerInputs
 from .decoders import ViterbiDecoder
 from .encoders import BaseEncoder
 
@@ -25,7 +24,7 @@ class SequenceTagger(Module):
         self.decoder = decoder
 
     def forward(
-        self, inputs: TaggerInputs, mask: torch.Tensor
+        self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes log potentials and tag sequence.
 
@@ -43,5 +42,11 @@ class SequenceTagger(Module):
         tag_indices = self.decoder(log_potentials, mask)
         return log_potentials, tag_indices
 
-    def predict(self, inputs: TaggerInputs, mask: torch.Tensor) -> torch.Tensor:
+    def predict(
+        self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
+    ) -> torch.Tensor:
         return self(inputs, mask)[1]
+
+    @property
+    def padding_index(self) -> int:
+        return self.decoder.padding_index

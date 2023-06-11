@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 
 import torch
 from torch.nn import Module
 
-from ..data.batch.text import TaggerInputs
+from ..data.core import LabelSet
 
 
 class BaseEncoder(Module, metaclass=ABCMeta):
     """Base class of all encoders."""
 
     @abstractmethod
-    def forward(self, inputs: TaggerInputs) -> torch.Tensor:
+    def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
         """Encode the given inputs to a tensor.
 
         Args:
@@ -23,4 +25,10 @@ class BaseEncoder(Module, metaclass=ABCMeta):
 
     @abstractmethod
     def get_hidden_size(self) -> int:
+        raise NotImplementedError
+
+
+class BaseEncoderFactory(metaclass=ABCMeta):
+    @abstractmethod
+    def create(self, label_set: LabelSet) -> BaseEncoder:
         raise NotImplementedError

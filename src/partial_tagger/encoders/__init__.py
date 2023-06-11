@@ -1,1 +1,1 @@
-from .base import BaseEncoder  # NOQA
+from .base import BaseEncoder, BaseEncoderFactory  # NOQA
