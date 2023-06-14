@@ -37,7 +37,7 @@ def create_token_based_tags(
             raise ValueError("The number of tokens in text mismatch.")
 
         tags = []
-        length = 0
+        stack: list[str] = []
         for pos, index in enumerate(indices):
             status = label_set.get_status(index)
             label = label_set.get_label(index)
@@ -47,10 +47,15 @@ def create_token_based_tags(
             if status == Status.UNIT:
                 tags.append(Tag(Span(pos, 1), label))
             elif status == Status.END:
-                tags.append(Tag(Span(pos - length, length + 1), label))
-                length = 0
+                if stack[-1] == label:
+                    length = len(stack)
+                    tags.append(Tag(Span(pos - length, length + 1), label))
+                stack.clear()
             elif status == Status.START or status == Status.INSIDE:
-                length += 1
+                if not stack or stack[-1] == label:
+                    stack.append(label)
+                else:
+                    stack.clear()
             else:
                 raise ValueError("Invalid status.")
 

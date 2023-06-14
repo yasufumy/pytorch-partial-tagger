@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Optional
 
 import torch
 from torch.nn import Module, Parameter
@@ -39,12 +38,13 @@ class ViterbiDecoder(Module):
 
     Args:
         padding_index: An integer for padded elements.
+        constrainer: A BaseConstrainer object to constrain a given log potentials.
     """
 
     def __init__(
         self,
-        padding_index: Optional[int] = -1,
-        constrainer: Optional[BaseConstrainer] = None,
+        padding_index: int = -1,
+        constrainer: BaseConstrainer | None = None,
     ) -> None:
         super(ViterbiDecoder, self).__init__()
 
