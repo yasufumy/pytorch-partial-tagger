@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import torch
 from torch import nn
@@ -7,11 +7,13 @@ from . import NINF
 
 
 class CRF(nn.Module):
-    """A CRF layer.
+    """A Conditional Random Field (CRF) layer.
 
     Args:
         num_tags: An integer representing the number of tags.
 
+    Attributes:
+        transitions: Transition parameters of a CRF.
     """
 
     def __init__(self, num_tags: int) -> None:
@@ -22,7 +24,7 @@ class CRF(nn.Module):
         nn.init.xavier_normal_(self.transitions)
 
     def forward(
-        self, logits: torch.Tensor, mask: Optional[torch.Tensor] = None
+        self, logits: torch.Tensor, mask: torch.Tensor | None = None
     ) -> torch.Tensor:
         """Computes log potentials for a CRF.
 
