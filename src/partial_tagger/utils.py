@@ -20,7 +20,7 @@ def create_tag(start: int, length: int, label: str) -> Tag:
         label: A string representing a label of a tag.
 
     Returns:
-        A Tag.
+        An instance of Tag.
     """
     return Tag(Span(start, length), label)
 
@@ -36,7 +36,7 @@ def create_trainer(
     tokenizer_args: dict | None = None,
     encoder_type: str = "default",
 ) -> Trainer:
-    """Creates Trainer."""
+    """Creates an instance of Trainer."""
 
     if encoder_type == "default":
         encoder_factory = TransformerModelEncoderFactory(model_name, dropout)
