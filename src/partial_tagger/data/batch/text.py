@@ -65,6 +65,19 @@ def create_token_based_tags(
 
 
 class TextBatch:
+    """A batch of text data for tagging.
+
+    Args:
+        tokenized_texts: A tuple of instances of TokenizedText.
+        tagger_inputs: A dictionary that maps string keys to a tensor values.
+        mask: A [batch_size, sequence_length] float tensor representing
+        a mask for a batch.
+        device: A device on which to place tensors. Defaults to None.
+
+    Attributes:
+        tokenized_texts: A tuple of instances of TokenizedText.
+    """
+
     def __init__(
         self,
         tokenized_texts: tuple[TokenizedText, ...],
@@ -101,6 +114,17 @@ class TextBatch:
     def create_char_based_tags(
         self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
     ) -> tuple[CharBasedTags, ...]:
+        """Creates character-based tags for text batch based on a given tag indices
+        and an instance of LabelSet.
+
+        Args:
+            tag_indices: A [batch_size, sequence_length] integer tensor of tag indices.
+            label_set: An instance of LabelSet to use for tag conversion.
+            padding_index: An integer representing a padding index. Defaults to -1.
+
+        Returns:
+            A tuple of instances of CharBasedTags.
+        """
         return tuple(
             tags.convert_to_char_based()
             for tags in self.create_token_based_tags(
@@ -111,18 +135,46 @@ class TextBatch:
     def create_token_based_tags(
         self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
     ) -> tuple[TokenBasedTags, ...]:
+        """Creates token-based tags for text batch based on a given tag indices
+        and an instance of LabelSet.
+
+        Args:
+            tag_indices: A [batch_size, sequence_length] integer tensor of tag indices.
+            label_set: An instance of LabelSet to use for tag conversion.
+            padding_index: An integer representing a padding index. Defaults to -1.
+
+        Returns:
+            A tuple of instances of TokenBasedTags.
+        """
         return create_token_based_tags(
             self.tokenized_texts, tag_indices, label_set, padding_index
         )
 
 
 class BaseTokenizer(metaclass=ABCMeta):
+    """Base class for all tokenizers."""
+
     @abstractmethod
     def __call__(self, texts: tuple[str, ...]) -> TextBatch:
+        """Tokenize given texts, encode to tensors and return an instance of TextBatch.
+
+        Args:
+            texts: A tuple of strings, where each item represents a text.
+
+        Returns:
+            An instance of TextBatch.
+        """
         raise NotImplementedError
 
 
 class TransformerTokenizer(BaseTokenizer):
+    """A tokenizer for Transformer.
+
+    Args:
+        tokenizer: A transformer tokenizer.
+        tokenizer_args: Additional tokenizer arguments. Defaults to None.
+    """
+
     def __init__(
         self,
         tokenizer: PreTrainedTokenizer,
@@ -145,6 +197,14 @@ class TransformerTokenizer(BaseTokenizer):
             raise ValueError("Set return_tensors to pt")
 
     def __call__(self, texts: tuple[str, ...]) -> TextBatch:
+        """Tokenize given texts, encode to tensors and return an instance of TextBatch.
+
+        Args:
+            texts: A tuple of strings, where each item represents a text.
+
+        Returns:
+            An instance of TextBatch.
+        """
         batch_encoding = self.__tokenizer(texts, **self.__tokenizer_args)
 
         mappings = batch_encoding.pop("offset_mapping").tolist()

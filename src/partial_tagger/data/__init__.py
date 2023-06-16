@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 from .core import (  # NOQA
     CharBasedTags,
     LabelSet,
@@ -8,5 +6,3 @@ from .core import (  # NOQA
     TokenBasedTags,
     TokenizedText,
 )
-
-Dataset = List[Tuple[str, CharBasedTags]]
