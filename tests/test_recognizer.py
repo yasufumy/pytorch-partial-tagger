@@ -15,4 +15,5 @@ def test_recognizer_outputs_valid_char_based_tags() -> None:
 
     output = recognizer((text,), 1, device)
 
+    assert len(output) == 1
     assert isinstance(output[0], CharBasedTags)

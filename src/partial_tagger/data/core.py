@@ -30,6 +30,19 @@ class Tag:
 
 
 class TokenizedText:
+    """A TokenizedText represents a text that has been tokenized and provides
+    convenient methods to access its tokens and spans.
+
+    Args:
+        text: An original text.
+        char_spans: A tuple of character spans for each token, or None if
+            there is no corresponding span.
+        token_indices: A tuple of token indices for each character, or -1 if there is
+            no corresponding token.
+        addtional_token: A string used to represent token without no corresponding
+            character span. Defaults to "[Token]".
+    """
+
     def __init__(
         self,
         text: str,
@@ -73,9 +86,27 @@ class TokenizedText:
         return self.__char_spans[token_index]
 
     def convert_to_token_index(self, char_index: int) -> int:
+        """Converts a character index to its corresponding token index.
+
+        Args:
+            char_index: A character index.
+
+        Returns:
+            A corresponding token index, or -1 if there is no corresponding token.
+
+        """
         return self.__token_indices[char_index]
 
     def convert_to_char_span(self, token_span: Span) -> Span | None:
+        """Converts a token span to its corresponding character span.
+
+        Args:
+            token_span: An instance of Span corresponding a token.
+
+        Returns:
+            A corresponding character span, or None if there is no corresponding
+            character span.
+        """
         char_span_start = self.__char_spans[token_span.start]
         char_span_end = self.__char_spans[token_span.start + token_span.length - 1]
 
@@ -90,6 +121,15 @@ class TokenizedText:
 
 @dataclass(frozen=True, eq=True)
 class CharBasedTags:
+    """Character-based tags represent a collection of tags that occur in a text
+    on the character level.
+
+    Args:
+        tags: A tuple of instances of Tag representing tags that occur in a text.
+        text: A text in which tags are defined.
+
+    """
+
     tags: tuple[Tag, ...]
     text: str
 
@@ -106,6 +146,16 @@ class CharBasedTags:
         return f"({', '.join(tag_strs)})"
 
     def convert_to_token_based(self, tokenized_text: TokenizedText) -> "TokenBasedTags":
+        """Converts an instance CharBasedTags to an instance of TokenBasedTags
+        based on a provided instance of TokenizedText.
+
+        Args:
+            tokenized_text: An instance of TokenizedText.
+
+        Returns:
+            An instance of TokenBasedTags.
+
+        """
         if self.text != tokenized_text.get_text():
             raise ValueError("The text doesn't match")
 
@@ -121,6 +171,15 @@ class CharBasedTags:
 
 @dataclass(frozen=True)
 class TokenBasedTags:
+    """Token-based tags represent a collection of tags that occur in a text
+    on the token level.
+
+    Args:
+        tags: A tuple of instances of Tag representing tags that occur in a text.
+        text: A tokenized text in which tags are defined.
+
+    """
+
     tags: tuple[Tag, ...]
     tokenized_text: TokenizedText
 
@@ -144,6 +203,11 @@ class TokenBasedTags:
         return self.tokenized_text.num_tokens
 
     def convert_to_char_based(self) -> CharBasedTags:
+        """Converts an instance of TokenBasedTags to an instance of CharBasedTags.
+
+        Returns:
+            An instance of CharBasedTags.
+        """
         tags = []
         for tag in self.tags:
             char_span = self.tokenized_text.convert_to_char_span(tag.span)
@@ -154,6 +218,17 @@ class TokenBasedTags:
     def get_tag_indices(
         self, label_set: LabelSet, unknown_index: int = -100
     ) -> list[int]:
+        """Returns a list of active tag indices.
+
+        Args:
+            label_set: An instance of LabelSet.
+            unknown_index: An integer representing an index for an unknown tag.
+                Defaults to -100.
+
+        Returns:
+            A list of integers, where each integer represents an active tag.
+
+        """
         tag_indices = [unknown_index] * self.tokenized_text.num_tokens
 
         for token_index in range(self.tokenized_text.num_tokens):
@@ -176,6 +251,15 @@ class TokenBasedTags:
         return tag_indices
 
     def get_tag_bitmap(self, label_set: LabelSet) -> list[list[bool]]:
+        """Returns a tag bitmap indicating the presence of active tags for each token.
+
+        Args:
+            label_set: An instance of LabelSet.
+
+        Returns:
+            A list of lists of booleans, where each boolean represents an active tag.
+
+        """
         tag_bitmap = [
             [False] * label_set.get_tag_size() for _ in range(self.num_tokens)
         ]
@@ -213,6 +297,13 @@ class Status(Enum):
 
 
 class LabelSet:
+    """A label set represents a set of labels used for tagging, where each label
+    has four states (start, inside, end, unit).
+
+    Args:
+        labels: A set of strings, where each string represents a label.
+    """
+
     def __init__(self, labels: set[str]):
         self.__labels = [*sorted(labels)]
         self.__status_size = len(Status)  # start, inside, end, unit
@@ -268,6 +359,15 @@ class LabelSet:
         return self.__status_size * self.get_label_size() + 1
 
     def get_label(self, index: int) -> str | None:
+        """Returns a label associated with a given index.
+
+        Args:
+            index: An integer representing a label with a state.
+
+        Returns:
+            A string representing a label, or None if a given index represents
+            an outside status.
+        """
         if index < 0 or index >= self.get_tag_size():
             raise ValueError("Invalid index.")
 
@@ -277,6 +377,16 @@ class LabelSet:
         return self.__labels[bisect_left(self.__unit_indices, index)]
 
     def get_status(self, index: int) -> Status | None:
+        """Returns a status associated with a given index.
+
+        Args:
+            index: An integer representing a label with a state.
+
+        Returns:
+            A status associated with an index, or None if an given index represents
+            an outside status.
+
+        """
         if index < 0 or index >= self.get_tag_size():
             raise ValueError("Invalid index.")
 
@@ -295,6 +405,13 @@ class LabelSet:
             raise ValueError("Invalid index.")
 
     def get_start_states(self) -> list[bool]:
+        """Returns a list of booleans representing an allowed start states.
+
+        Returns:
+            A list of booleans representing allowed start states,
+            where each item is: True for its index allowed and False otherwise.
+
+        """
         states = [False] * self.get_tag_size()
         # Always allowed starts from outside status
         states[self.get_outside_index()] = True
@@ -306,6 +423,13 @@ class LabelSet:
         return states
 
     def get_end_states(self) -> list[bool]:
+        """Returns a list of booleans representing an allowed end states.
+
+        Returns:
+            A list of booleans representing allowed end states,
+            where each item is: True for its index allowed and False otherwise.
+
+        """
         states = [False] * self.get_tag_size()
         # Always allowed ends with outside status
         states[self.get_outside_index()] = True
@@ -317,6 +441,14 @@ class LabelSet:
         return states
 
     def get_transitions(self) -> list[list[bool]]:
+        """Returns a list of lists of booleans representing
+        allowed transitions between tags.
+
+        Returns:
+            A list of lists of booleans representing allowed transitions between tags,
+            where each item is: True for an allowed transition and False otherwise.
+
+        """
         transitions = [
             [False] * self.get_tag_size() for _ in range(self.get_tag_size())
         ]

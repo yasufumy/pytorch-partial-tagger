@@ -1,6 +1,4 @@
-from typing import List, Tuple
-
-from .core import (  # NOQA
+from partial_tagger.data.core import (  # NOQA
     CharBasedTags,
     LabelSet,
     Span,
@@ -8,5 +6,3 @@ from .core import (  # NOQA
     TokenBasedTags,
     TokenizedText,
 )
-
-Dataset = List[Tuple[str, CharBasedTags]]

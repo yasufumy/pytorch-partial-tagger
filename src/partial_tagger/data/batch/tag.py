@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import torch
 
-from ..core import CharBasedTags, LabelSet, TokenBasedTags
+from partial_tagger.data.core import CharBasedTags, LabelSet, TokenBasedTags
 
 
 class TagsBatch:
+    """A batch of token-based tags.
+
+    Args:
+        tags_batch: A tuple of instances of TokenBasedTags.
+        label_set: An instance of LabelSet to use for tag conversion.
+        device: A device on which to place tensors. Defaults to None.
+    """
+
     def __init__(
         self,
         tags_batch: tuple[TokenBasedTags, ...],
@@ -34,6 +42,17 @@ class TagsBatch:
     def get_tag_indices(
         self, padding_index: int = -1, unknown_index: int = -100
     ) -> torch.Tensor:
+        """Returns a tensor of tag indices for a batch.
+
+        Args:
+            padding_index: An integer representing an index to pad a tensor.
+                Defaults to -1.
+            unknown_index: An integer representing an index for an unknown tag.
+                Defaults to -100.
+
+        Returns:
+            A [batch_size, sequence_length] integer tensor representing tag indices.
+        """
         label_set = self.__label_set
 
         max_length = max(tags.num_tokens for tags in self.__tags_batch)
@@ -54,6 +73,12 @@ class TagsBatch:
     def get_tag_bitmap(
         self,
     ) -> torch.Tensor:
+        """Returns a tensor of tag bitmap for a batch.
+
+        Returns:
+            A [batch_size, sequence_length, num_tags] boolean tensor representing
+            tag bitmap.
+        """
         label_set = self.__label_set
 
         max_length = max(tags.num_tokens for tags in self.__tags_batch)

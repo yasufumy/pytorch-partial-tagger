@@ -2,22 +2,22 @@ from __future__ import annotations
 
 import io
 import logging
+from collections.abc import Sequence
 from logging import Logger
-from typing import cast
 
 import torch
 from torch.utils.data import DataLoader
 
-from .crf import functional as F
-from .data import Dataset, LabelSet
-from .data.batch import Collator
-from .data.batch.tag import TagsBatch
-from .data.batch.text import BaseTokenizer, TextBatch
-from .decoders.viterbi import Contrainer, ViterbiDecoder
-from .encoders import BaseEncoderFactory
-from .metric import Metric
-from .recognizer import Recognizer
-from .tagger import SequenceTagger
+from partial_tagger.crf import functional as F
+from partial_tagger.data import CharBasedTags, LabelSet
+from partial_tagger.data.batch import Collator
+from partial_tagger.data.batch.tag import TagsBatch
+from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
+from partial_tagger.encoders import BaseEncoderFactory
+from partial_tagger.metric import Metric
+from partial_tagger.recognizer import Recognizer
+from partial_tagger.tagger import SequenceTagger
 
 
 class SlantedTriangular:
@@ -34,7 +34,7 @@ class SlantedTriangular:
         return (1 + p * (self.__ratio - 1)) / self.__ratio
 
 
-def expected_entity_ratio_loss(
+def compute_partially_supervised_loss(
     log_potentials: torch.Tensor,
     tag_bitmap: torch.Tensor,
     mask: torch.Tensor,
@@ -43,6 +43,25 @@ def expected_entity_ratio_loss(
     entity_ratio_margin: float = 0.05,
     balancing_coefficient: int = 10,
 ) -> torch.Tensor:
+    """Computes the loss proposed in Effland and Collins. '21.
+
+    Args:
+        log_potentials: A [batch_size, sequence_length, num_tag, num_tag] float tensor
+            representing log potentials.
+        tag_bitmap: A [batch_size, sequence_length, num_tag] boolean tensor indicating
+            all active tags at each index.
+        mask: A [batch_size, sequence_length] boolean tensor.
+        outside_index: An integer representing a non-entity index.
+        target_entity_ratio: A float representing a target entity ratio
+            for training. Defaults to 0.15.
+        entity_ratio_margin: A float representing a margin for the entity ratio.
+            Defaults to 0.05.
+        balancing_coefficient: An integer representing a balancing coefficient
+            for the loss function. Defaults to 10.
+
+    Returns:
+        A float representing loss.
+    """
     with torch.enable_grad():
         # log partition
         log_Z = F.forward_algorithm(log_potentials)
@@ -69,6 +88,27 @@ def expected_entity_ratio_loss(
 
 
 class Trainer:
+    """A trainer for fitting the parameters of a tagger based on a given dataset.
+
+    Args:
+        tokenizer: An instance of BaseTokenizer.
+        encoder_factory: An encoder factory for creating encoders.
+        batch_size: An integer representing a batch size for training. Defaults to 15.
+        num_epochs: An integer representing the number of epochs for training.
+            Defaults to 20.
+        learning_rate: A float representing a learning rate for optimization.
+            Defaults to 2e-5.
+        gradient_clip_value: A float representing a maximum gradient value
+            for clipping. Defaults to 5.0.
+        target_entity_ratio: A float representing a target entity ratio
+            for training. Defaults to 0.15.
+        entity_ratio_margin: A float representing a margin for the entity ratio.
+            Defaults to 0.05.
+        balancing_coefficient: An integer representing a balancing coefficient
+            for the loss function. Defaults to 10.
+        padding_index: An integer representing an index for padding. Defaults to -1.
+    """
+
     def __init__(
         self,
         tokenizer: BaseTokenizer,
@@ -95,11 +135,24 @@ class Trainer:
 
     def __call__(
         self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset,
+        train_dataset: list[tuple[str, CharBasedTags]],
+        validation_dataset: list[tuple[str, CharBasedTags]],
         device: torch.device,
         logger: Logger | None = None,
     ) -> Recognizer:
+        """Trains an instance of SequenceTagger.
+
+        Args:
+            train_dataset: A list of training data tuples containing text and tags.
+            validation_dataset: A list of validation data tuples
+                containing text and tags.
+            device: A device to be used for training.
+            logger: A logger for logging training progress. Defaults to None.
+
+        Returns:
+            An instance of Recognizer which predicts character-based tags
+            from a given text.
+        """
         if logger is None:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.INFO)
@@ -117,7 +170,7 @@ class Trainer:
             self.__encoder_factory.create(label_set),
             ViterbiDecoder(
                 self.__padding_index,
-                Contrainer(
+                Constrainer(
                     label_set.get_start_states(),
                     label_set.get_end_states(),
                     label_set.get_transitions(),
@@ -128,12 +181,12 @@ class Trainer:
 
         collator = Collator(self.__tokenizer, label_set)
 
-        train_dataloader = DataLoader(
+        train_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
             train_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=self.__batch_size,
         )
-        validation_dataloader = DataLoader(
+        validation_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
             validation_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=self.__batch_size,
@@ -155,9 +208,6 @@ class Trainer:
             tagger.train()
 
             for text_batch, tags_batch in train_dataloader:
-                text_batch = cast(TextBatch, text_batch)
-                tags_batch = cast(TagsBatch, tags_batch)
-
                 text_batch.to(device)
                 tags_batch.to(device)
 
@@ -167,7 +217,7 @@ class Trainer:
 
                 log_potentials, _ = tagger(text_batch.tagger_inputs, mask)
 
-                loss = expected_entity_ratio_loss(
+                loss = compute_partially_supervised_loss(
                     log_potentials,
                     tags_batch.get_tag_bitmap(),
                     mask,
@@ -190,9 +240,6 @@ class Trainer:
             tagger.eval()
             metric = Metric()
             for text_batch, tags_batch in validation_dataloader:
-                text_batch = cast(TextBatch, text_batch)
-                tags_batch = cast(TagsBatch, tags_batch)
-
                 text_batch.to(device)
                 tags_batch.to(device)
 

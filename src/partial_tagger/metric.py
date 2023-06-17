@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .data.core import CharBasedTags
+from partial_tagger.data.core import CharBasedTags
 
 
 class Metric:

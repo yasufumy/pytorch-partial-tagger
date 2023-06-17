@@ -3,17 +3,22 @@ from __future__ import annotations
 import torch
 from torch.nn import Module
 
-from .crf.nn import CRF
-from .decoders import ViterbiDecoder
-from .encoders import BaseEncoder
+from partial_tagger.crf.nn import CRF
+from partial_tagger.decoders import ViterbiDecoder
+from partial_tagger.encoders import BaseEncoder
 
 
 class SequenceTagger(Module):
-    """Sequence tagger.
+    """A sequence tagging model with a CRF layer.
 
     Args:
-        encoder: An encoder.
-        decoder: A decoder.
+        encoder: An encoder module.
+        decoder: A decoder module.
+
+    Attributes:
+        encoder: An encoder module.
+        crf: A CRF layer.
+        decoder: A decoder module.
     """
 
     def __init__(self, encoder: BaseEncoder, decoder: ViterbiDecoder):
@@ -29,7 +34,7 @@ class SequenceTagger(Module):
         """Computes log potentials and tag sequence.
 
         Args:
-            inputs: An inputs representing input data feeding into an embedder.
+            inputs: An inputs representing input data feeding into the encoder module.
             mask: A [batch_size, sequence_length] boolean tensor.
 
         Returns:
@@ -45,6 +50,15 @@ class SequenceTagger(Module):
     def predict(
         self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
     ) -> torch.Tensor:
+        """Predicts tag sequence from a given input.
+
+        Args:
+            inputs: An inputs representing input data feeding into the encoder module.
+            mask: A [batch_size, sequence_length] boolean tensor.
+
+        Returns:
+             A [batch_size, sequence_length] integer tensor representing tag sequence.
+        """
         return self(inputs, mask)[1]
 
     @property

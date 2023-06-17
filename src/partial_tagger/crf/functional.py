@@ -2,7 +2,7 @@ from typing import Callable, Optional, Tuple
 
 import torch
 
-from . import NINF
+from partial_tagger.crf import NINF
 
 # collections.abc.Callable is preferred.
 Matmul = Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
@@ -17,9 +17,9 @@ def log_likelihood(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         tag_indices: A [batch_size, sequence_length] integer tensor
-        indicating an active index.
+            indicating an active index.
         mask: A [batch_size, sequence_length] boolean tensor.
 
     Returns:
@@ -41,9 +41,9 @@ def marginal_log_likelihood(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         tag_bitmap: A [batch_size, sequence_length, num_tags] boolean tensor
-        indicating all active tags at each index.
+            indicating all active tags at each index.
         mask: A [batch_size, sequence_length] boolean tensor.
 
     Returns:
@@ -63,7 +63,7 @@ def normalize(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         matmul: A general matrix multiplication.
         normalizer: A reduce operation.
 
@@ -126,7 +126,7 @@ def forward_algorithm(log_potentials: torch.Tensor) -> torch.Tensor:
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
 
     Returns:
         A [batch_size] float tensor representing the normalizer.
@@ -139,7 +139,7 @@ def amax(log_potentials: torch.Tensor) -> torch.Tensor:
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
 
     Returns:
         A [batch_size] float tensor representing the maximum score.
@@ -156,7 +156,7 @@ def decode(log_potentials: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
 
     Returns:
         A tuple of tensors. The first tensor is a [batch_size] float tensor
@@ -186,7 +186,7 @@ def constrain_log_potentials(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         mask: A [batch_size, sequence_length] boolean tensor.
         start_constraints: A [num_tags] boolean tensor.
         end_constraints: A [num_tags] boolean tensor.
@@ -230,9 +230,9 @@ def sequence_score(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         tag_indices: A [batch_size, sequence_length] integer tensor
-        indicating an active index.
+            indicating an active index.
         mask: A [batch_size, sequence_length] boolean tensor.
 
     Returns:
@@ -266,9 +266,9 @@ def multitag_sequence_score(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-        float tensor.
+            float tensor.
         tag_bitmap: A [batch_size, sequence_length, num_tags] boolean tensor
-        indicating all active tags at each index.
+            indicating all active tags at each index.
         mask: A [batch_size, sequence_length] boolean tensor.
 
     Returns:

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from transformers import AutoTokenizer
 
-from .data.batch.text import TransformerTokenizer
-from .data.core import Span, Tag
-from .encoders.transformer import (
+from partial_tagger.data.batch.text import TransformerTokenizer
+from partial_tagger.data.core import Span, Tag
+from partial_tagger.encoders.transformer import (
     TransformerModelEncoderFactory,
     TransformerModelWithHeadEncoderFactory,
 )
-from .training import Trainer
+from partial_tagger.training import Trainer
 
 
 def create_tag(start: int, length: int, label: str) -> Tag:
@@ -20,7 +20,7 @@ def create_tag(start: int, length: int, label: str) -> Tag:
         label: A string representing a label of a tag.
 
     Returns:
-        A Tag.
+        An instance of Tag.
     """
     return Tag(Span(start, length), label)
 
@@ -36,7 +36,7 @@ def create_trainer(
     tokenizer_args: dict | None = None,
     encoder_type: str = "default",
 ) -> Trainer:
-    """Creates Trainer."""
+    """Creates an instance of Trainer."""
 
     if encoder_type == "default":
         encoder_factory = TransformerModelEncoderFactory(model_name, dropout)
