@@ -36,11 +36,11 @@ class TokenizedText:
     Args:
         text: An original text.
         char_spans: A tuple of character spans for each token, or None if
-        there is no corresponding span.
+            there is no corresponding span.
         token_indices: A tuple of token indices for each character, or -1 if there is
-        no corresponding token.
+            no corresponding token.
         addtional_token: A string used to represent token without no corresponding
-        character span. Defaults to "[Token]".
+            character span. Defaults to "[Token]".
     """
 
     def __init__(
@@ -223,7 +223,7 @@ class TokenBasedTags:
         Args:
             label_set: An instance of LabelSet.
             unknown_index: An integer representing an index for an unknown tag.
-            Defaults to -100.
+                Defaults to -100.
 
         Returns:
             A list of integers, where each integer represents an active tag.

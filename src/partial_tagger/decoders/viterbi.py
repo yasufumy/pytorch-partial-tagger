@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch.nn import Module, Parameter
 
-from ..crf import functional as F
+from partial_tagger.crf import functional as F
 
 
 class Constrainer(Module):
@@ -11,12 +11,12 @@ class Constrainer(Module):
 
     Args:
         start_states: A list of boolean values representing the start states.
-        True indicates an allowed state, while False indicates an otherwise state.
+            True indicates an allowed state, while False indicates an otherwise state.
         end_states: A list of boolean values representing the end states.
-        True indicates an allowed state, while False indicates an otherwise state.
+            True indicates an allowed state, while False indicates an otherwise state.
         transitions: A list of lists of boolean values representing the transitions.
-        True indicates an allowed transition,
-        while False indicates an otherwise transition.
+            True indicates an allowed transition,
+            while False indicates an otherwise transition.
 
     Attributes:
         start_states: Start states parameters.
@@ -42,7 +42,7 @@ class Constrainer(Module):
 
         Args:
             log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-            float tensor.
+                float tensor.
             mask: A [batch_size, sequence_length] boolean tensor.
 
         Returns:
@@ -81,7 +81,7 @@ class ViterbiDecoder(Module):
 
         Args:
             log_potentials: A [batch_size, sequence_length, num_tags, num_tags]
-            float tensor.
+                float tensor.
             mask: A [batch_size, sequence_length] boolean tensor.
 
         Returns:

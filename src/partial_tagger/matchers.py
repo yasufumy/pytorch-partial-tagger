@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 from spacy import Language
 
-from .data import CharBasedTags, Span, Tag
+from partial_tagger.data import CharBasedTags, Span, Tag
 
 
 class BaseMatcher(metaclass=ABCMeta):

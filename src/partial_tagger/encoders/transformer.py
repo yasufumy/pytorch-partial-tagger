@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from transformers import AutoModel, AutoModelForTokenClassification, PreTrainedModel
 
-from ..data.core import LabelSet
-from .base import BaseEncoder, BaseEncoderFactory
+from partial_tagger.data.core import LabelSet
+from partial_tagger.encoders.base import BaseEncoder, BaseEncoderFactory
 
 
 class TransformerModelEncoder(BaseEncoder):
@@ -16,9 +16,9 @@ class TransformerModelEncoder(BaseEncoder):
         model: A pre-trained transformer model to use for encoding.
         embedding_size: An integer representing the size of the input embeddings.
         hidden_size: An integer representing the dimension size of
-        the output tensor representation.
+            the output tensor representation.
         dropout_prob: A float representing dropout probability to apply.
-        Defaults to 0.2.
+            Defaults to 0.2.
 
     Attributes:
         model: A pre-trained transformer model.

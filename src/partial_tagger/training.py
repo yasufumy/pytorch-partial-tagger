@@ -8,16 +8,16 @@ from logging import Logger
 import torch
 from torch.utils.data import DataLoader
 
-from .crf import functional as F
-from .data import CharBasedTags, LabelSet
-from .data.batch import Collator
-from .data.batch.tag import TagsBatch
-from .data.batch.text import BaseTokenizer, TextBatch
-from .decoders.viterbi import Constrainer, ViterbiDecoder
-from .encoders import BaseEncoderFactory
-from .metric import Metric
-from .recognizer import Recognizer
-from .tagger import SequenceTagger
+from partial_tagger.crf import functional as F
+from partial_tagger.data import CharBasedTags, LabelSet
+from partial_tagger.data.batch import Collator
+from partial_tagger.data.batch.tag import TagsBatch
+from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
+from partial_tagger.encoders import BaseEncoderFactory
+from partial_tagger.metric import Metric
+from partial_tagger.recognizer import Recognizer
+from partial_tagger.tagger import SequenceTagger
 
 
 class SlantedTriangular:
@@ -47,17 +47,17 @@ def compute_partially_supervised_loss(
 
     Args:
         log_potentials: A [batch_size, sequence_length, num_tag, num_tag] float tensor
-        representing log potentials.
+            representing log potentials.
         tag_bitmap: A [batch_size, sequence_length, num_tag] boolean tensor indicating
-        all active tags at each index.
+            all active tags at each index.
         mask: A [batch_size, sequence_length] boolean tensor.
         outside_index: An integer representing a non-entity index.
         target_entity_ratio: A float representing a target entity ratio
-        for training. Defaults to 0.15.
+            for training. Defaults to 0.15.
         entity_ratio_margin: A float representing a margin for the entity ratio.
-        Defaults to 0.05.
+            Defaults to 0.05.
         balancing_coefficient: An integer representing a balancing coefficient
-        for the loss function. Defaults to 10.
+            for the loss function. Defaults to 10.
 
     Returns:
         A float representing loss.
@@ -95,17 +95,17 @@ class Trainer:
         encoder_factory: An encoder factory for creating encoders.
         batch_size: An integer representing a batch size for training. Defaults to 15.
         num_epochs: An integer representing the number of epochs for training.
-        Defaults to 20.
+            Defaults to 20.
         learning_rate: A float representing a learning rate for optimization.
-        Defaults to 2e-5.
+            Defaults to 2e-5.
         gradient_clip_value: A float representing a maximum gradient value
-        for clipping. Defaults to 5.0.
+            for clipping. Defaults to 5.0.
         target_entity_ratio: A float representing a target entity ratio
-        for training. Defaults to 0.15.
+            for training. Defaults to 0.15.
         entity_ratio_margin: A float representing a margin for the entity ratio.
-        Defaults to 0.05.
+            Defaults to 0.05.
         balancing_coefficient: An integer representing a balancing coefficient
-        for the loss function. Defaults to 10.
+            for the loss function. Defaults to 10.
         padding_index: An integer representing an index for padding. Defaults to -1.
     """
 
@@ -145,7 +145,7 @@ class Trainer:
         Args:
             train_dataset: A list of training data tuples containing text and tags.
             validation_dataset: A list of validation data tuples
-            containing text and tags.
+                containing text and tags.
             device: A device to be used for training.
             logger: A logger for logging training progress. Defaults to None.
 

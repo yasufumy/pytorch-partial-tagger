@@ -6,7 +6,7 @@ from typing import Any
 import torch
 from transformers.tokenization_utils import PreTrainedTokenizer
 
-from ..core import (
+from partial_tagger.data.core import (
     CharBasedTags,
     LabelSet,
     Span,
@@ -71,7 +71,7 @@ class TextBatch:
         tokenized_texts: A tuple of instances of TokenizedText.
         tagger_inputs: A dictionary that maps string keys to a tensor values.
         mask: A [batch_size, sequence_length] float tensor representing
-        a mask for a batch.
+            a mask for a batch.
         device: A device on which to place tensors. Defaults to None.
 
     Attributes:

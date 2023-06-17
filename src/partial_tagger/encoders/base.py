@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 from torch.nn import Module
 
-from ..data.core import LabelSet
+from partial_tagger.data.core import LabelSet
 
 
 class BaseEncoder(Module, metaclass=ABCMeta):

@@ -1,1 +1,1 @@
-from .base import BaseEncoder, BaseEncoderFactory  # NOQA
+from partial_tagger.encoders.base import BaseEncoder, BaseEncoderFactory  # NOQA

@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from . import NINF
+from partial_tagger.crf import NINF
 
 
 class CRF(nn.Module):

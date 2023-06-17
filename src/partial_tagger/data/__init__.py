@@ -1,4 +1,4 @@
-from .core import (  # NOQA
+from partial_tagger.data.core import (  # NOQA
     CharBasedTags,
     LabelSet,
     Span,

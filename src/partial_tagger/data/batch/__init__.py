@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ..core import CharBasedTags, LabelSet
-from .tag import TagsBatch
-from .text import BaseTokenizer, TextBatch
+from partial_tagger.data.batch.tag import TagsBatch
+from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.data.core import CharBasedTags, LabelSet
 
 
 class Collator:

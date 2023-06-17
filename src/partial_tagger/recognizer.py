@@ -5,9 +5,9 @@ from collections.abc import Sequence
 import torch
 from torch.utils.data import DataLoader
 
-from .data import CharBasedTags, LabelSet
-from .data.batch.text import BaseTokenizer, TextBatch
-from .tagger import SequenceTagger
+from partial_tagger.data import CharBasedTags, LabelSet
+from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.tagger import SequenceTagger
 
 
 class Recognizer:

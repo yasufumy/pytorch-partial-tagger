@@ -3,9 +3,9 @@ from __future__ import annotations
 import torch
 from torch.nn import Module
 
-from .crf.nn import CRF
-from .decoders import ViterbiDecoder
-from .encoders import BaseEncoder
+from partial_tagger.crf.nn import CRF
+from partial_tagger.decoders import ViterbiDecoder
+from partial_tagger.encoders import BaseEncoder
 
 
 class SequenceTagger(Module):

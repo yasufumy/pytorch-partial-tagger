@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 
-from ..core import CharBasedTags, LabelSet, TokenBasedTags
+from partial_tagger.data.core import CharBasedTags, LabelSet, TokenBasedTags
 
 
 class TagsBatch:
@@ -46,9 +46,9 @@ class TagsBatch:
 
         Args:
             padding_index: An integer representing an index to pad a tensor.
-            Defaults to -1.
+                Defaults to -1.
             unknown_index: An integer representing an index for an unknown tag.
-            Defaults to -100.
+                Defaults to -100.
 
         Returns:
             A [batch_size, sequence_length] integer tensor representing tag indices.
