@@ -162,3 +162,5 @@ cython_debug/
 pdm.lock
 
 .tool-versions
+
+_autosummary
