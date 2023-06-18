@@ -1,5 +1,7 @@
 # pytorch-partial-tagger
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17GcpKmYn49bMM-mCZhiuRu8dkPZ0WXuD?usp=sharing)
+
  This is a library to build a CRF tagger for a partially annotated dataset in PyTorch. You can build your own NER tagger only from dictionary. The algorithm of this tagger is based on Effland and Collins. (2021).
 
 
