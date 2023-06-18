@@ -73,6 +73,10 @@ print(metric.get_scores())  # Display F1-score, Precision, Recall
 pip install pytorch-partial-tagger
 ```
 
+## Documentation
+
+For details about the pytorch-partial-tagger API,  see the [documentation](https://pytorch-partial-tagger.readthedocs.io/en/latest/).
+
 ## References
 
  - Yuta Tsuboi, Hisashi Kashima, Shinsuke Mori, Hiroki Oda, and Yuji Matsumoto. 2008. [Training Conditional Random Fields Using Incomplete Annotations](https://aclanthology.org/C08-1113/). In _Proceedings of the 22nd International Conference on Computational Linguistics (Coling 2008)_, pages 897–904, Manchester, UK. Coling 2008 Organizing Committee.
