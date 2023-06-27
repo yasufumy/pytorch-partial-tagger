@@ -147,7 +147,9 @@ class CharBasedTags:
 
     def convert_to_token_based(self, tokenized_text: TokenizedText) -> "TokenBasedTags":
         """Converts an instance CharBasedTags to an instance of TokenBasedTags
-        based on a provided instance of TokenizedText.
+        based on a provided instance of TokenizedText. Note that this operation
+        is irreversible. For example, if the given tokenized text is truncated,
+        tags associated with a truncated part will be ignored.
 
         Args:
             tokenized_text: An instance of TokenizedText.
@@ -163,6 +165,9 @@ class CharBasedTags:
         for tag in self.tags:
             start = tokenized_text.convert_to_token_index(tag.start)
             end = tokenized_text.convert_to_token_index(tag.start + tag.length - 1)
+            if start == -1 or end == -1:
+                # There is no char span which strictly corresponds a given tag.
+                continue
             length = end - start + 1
             tags.append(Tag(Span(start, length), tag.label))
 
