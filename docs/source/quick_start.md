@@ -1,10 +1,10 @@
 # Quick Start
 
-We would replicate the experiment in [Effland and Collins. '21](https://aclanthology.org/2021.tacl-1.78/).
+We will replicate the experiment in [Effland and Collins. '21](https://aclanthology.org/2021.tacl-1.78/).
 
 ## Download datasets
 
-Here, you would download datasets provided on [teffland/ner-expected-entity-ratio](https://github.com/teffland/ner-expected-entity-ratio/tree/main) below. We use the datasets for the experimental setting Non-Native Speaker Scenario (NNS): Recall=50%, Precision=90% in [Effland and Collins. '21](https://aclanthology.org/2021.tacl-1.78/).
+Here, we will download datasets provided on [teffland/ner-expected-entity-ratio](https://github.com/teffland/ner-expected-entity-ratio/tree/main) below. We use the datasets for the experimental setting Non-Native Speaker Scenario (NNS): Recall=50%, Precision=90% in [Effland and Collins. '21](https://aclanthology.org/2021.tacl-1.78/).
 
 ```bash
 curl -LO https://raw.githubusercontent.com/teffland/ner-expected-entity-ratio/main/data/conll2003/eng/entity.train_r0.5_p0.9.jsonl
@@ -31,7 +31,7 @@ from partial_tagger.utils import create_tag,  create_trainer
 
 ## Define utility functions
 
-We would prepare two utility functions. One is for fixing random state and the other is for displaying training logs.
+We will prepare two utility functions. One is for fixing random state and the other is for displaying training logs.
 
 
 ```py
@@ -75,7 +75,7 @@ def get_logger(log_name, log_file):
 
 ## Prepare datasets
 
-You would prepare your datasets. Each item of dataset must have a string and tags. A string represents `text` below. Tags represent a collection of tags, where each tag has a start, a length, and a label, which are defined as `tags` below. A start represents a position in text where a tag starts. A length represents a distance in text between the beginning of a tag and the end of a tag. A label represents what you want to assign to a span of text defined by a start and a length.
+We will prepare our datasets. Each item of the datasets must have a string and tags. A string represents `text` below. Tags represent the collection of a tag, where each tag has a start, a length, and a label, which are defined as `tags` below. A start represents a position in text where a tag starts. A length represents a distance in text between the beginning of a tag and the end of a tag. A label represents what you want to assign to a span of text defined by a start and a length.
 
 
 ```py
@@ -113,9 +113,9 @@ dev_dataset = load_dataset("entity.dev.jsonl")
 test_dataset = load_dataset("entity.test.jsonl")
 ```
 
-## Train your tagger
+## Train our tagger
 
-You would train your tagger by initializing Trainer and passing datasets to it. After training, trainer gives you `Recognizer` object which predicts character-based tags from given texts. 
+We will train our tagger by initializing Trainer and passing datasets to it. After training, trainer gives you an instance of `Recognizer` which predicts character-based tags from given texts. 
 
 
 ```py
@@ -159,9 +159,9 @@ with get_logger(f"{__name__}.train", train_log_file) as logger:
 ```
 
 
-## Evalute your tagger
+## Evaluate our tagger
 
-You would evaluate the performance of your tagger using Metric as below.
+We will evaluate the performance of our tagger using Metric as below.
 
 ```py
 texts, ground_truths = zip(*test_dataset)
