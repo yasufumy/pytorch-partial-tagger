@@ -1,6 +1,21 @@
 import pytest
 
-from partial_tagger.data import LabelSet, Span, TokenizedText
+from partial_tagger.data import (
+    CharBasedTags,
+    LabelSet,
+    Span,
+    TokenBasedTags,
+    TokenizedText,
+)
+from partial_tagger.utils import create_tag
+
+
+@pytest.fixture
+def char_based_tags() -> CharBasedTags:
+    return CharBasedTags(
+        (create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC")),
+        "Tokyo is the capital of Japan.",
+    )
 
 
 @pytest.fixture
@@ -51,6 +66,52 @@ def tokenized_text() -> TokenizedText:
             7,
             7,
             8,
+        ),
+    )
+
+
+@pytest.fixture
+def tokenized_truncation_text() -> TokenizedText:
+    # Tokenized by RoBERTa
+    return TokenizedText(
+        "Tokyo is the capital of Japan.",
+        (
+            None,
+            Span(0, 3),
+            Span(3, 2),
+            None,
+        ),
+        (
+            1,
+            1,
+            1,
+            2,
+            2,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
         ),
     )
 
@@ -114,6 +175,14 @@ def test_converts_token_span_to_char_span(tokenized_text: TokenizedText) -> None
         char_spans.append(tokenized_text.convert_to_char_span(token_span))
 
     assert char_spans == expected
+
+
+def test_ignore_tags_define_in_truncated_text(
+    tokenized_truncation_text: TokenizedText, char_based_tags: CharBasedTags
+) -> None:
+    expected = TokenBasedTags((create_tag(1, 2, "LOC"),), tokenized_truncation_text)
+
+    assert char_based_tags.convert_to_token_based(tokenized_truncation_text) == expected
 
 
 def test_label_is_valid(label_set: LabelSet) -> None:

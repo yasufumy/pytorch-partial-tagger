@@ -8,16 +8,42 @@ from partial_tagger.data.batch.tag import TagsBatch
 from partial_tagger.data.batch.text import TransformerTokenizer
 
 
+@pytest.mark.parametrize(
+    "text, char_based_tags, expected",
+    [
+        (
+            "Tokyo is the capital of Japan.",
+            CharBasedTags(
+                (Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")),
+                "Tokyo is the capital of Japan.",
+            ),
+            torch.tensor([[0, 1, 3, -100, -100, -100, -100, 4, -100, 0]]),
+        ),
+        (
+            "Tokyo is the capital of Japan." * 100,
+            CharBasedTags(
+                tuple(Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100))
+                + tuple(Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)),
+                "Tokyo is the capital of Japan." * 100,
+            ),
+            torch.tensor(
+                [
+                    [0]
+                    + [1, 3, -100, -100, -100, -100, 4, -100] * 63
+                    + [1, 3, -100, -100, -100, -100]
+                    + [0],
+                ]
+            ),
+        ),
+    ],
+)
 def test_tag_indices_are_valid(
-    tokenizer: TransformerTokenizer, label_set: LabelSet
+    tokenizer: TransformerTokenizer,
+    label_set: LabelSet,
+    text: str,
+    char_based_tags: CharBasedTags,
+    expected: torch.Tensor,
 ) -> None:
-    text = "Tokyo is the capital of Japan."
-    char_based_tags = CharBasedTags(
-        (Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")), text=text
-    )
-
-    expected = torch.tensor([[0, 1, 3, -100, -100, -100, -100, 4, -100, 0]])
-
     text_batch = tokenizer((text,))
     tags_batch = TagsBatch(
         (char_based_tags.convert_to_token_based(text_batch.tokenized_texts[0]),),
