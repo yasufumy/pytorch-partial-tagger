@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from partial_tagger.data.core import CharBasedTags
-
 
 class Metric:
     def __init__(self) -> None:
@@ -11,8 +9,8 @@ class Metric:
 
     def __call__(
         self,
-        predictions: tuple[CharBasedTags, ...],
-        ground_truths: tuple[CharBasedTags, ...],
+        predictions: tuple[Tags, ...],
+        ground_truths: tuple[Tags, ...],
     ) -> None:
         for tags1, tags2 in zip(predictions, ground_truths):
             tag_set1 = {(tag1.start, tag1.length, tag1.label) for tag1 in tags1}

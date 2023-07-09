@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from partial_tagger.crf import functional as F
-from partial_tagger.data import CharBasedTags, LabelSet
+from partial_tagger.data import LabelSet
 from partial_tagger.data.batch import Collator
 from partial_tagger.data.batch.tag import TagsBatch
 from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
@@ -135,8 +135,8 @@ class Trainer:
 
     def __call__(
         self,
-        train_dataset: list[tuple[str, CharBasedTags]],
-        validation_dataset: list[tuple[str, CharBasedTags]],
+        train_dataset: list[tuple[str, Tags]],
+        validation_dataset: list[tuple[str, Tags]],
         device: torch.device,
         logger: Logger | None = None,
     ) -> Recognizer:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from partial_tagger.data import CharBasedTags, LabelSet, Span, Tag
+from partial_tagger.data import LabelSet, Span, Tag
 from partial_tagger.data.batch.text import TransformerTokenizer
 
 
@@ -34,11 +34,9 @@ def test_char_based_tags_are_valid(
     tag_indices: torch.Tensor,
     tags: tuple[Tag],
 ) -> None:
-    expected = CharBasedTags(tags, text)
-
     text_batch = tokenizer((text,))
 
     char_based_tags_batch = text_batch.create_char_based_tags(tag_indices, label_set)
 
     assert len(char_based_tags_batch) == 1
-    assert char_based_tags_batch[0] == expected
+    assert char_based_tags_batch[0] == tags

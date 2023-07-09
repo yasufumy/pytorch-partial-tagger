@@ -111,10 +111,51 @@ class Alignment:
 
         return tuple(aligned_tags)
 
+    def create_tags(
+        self, tag_indices: list[int], label_set: LabelSet, padding_index: int = -1
+    ) -> tuple[Tag, ...]:
+        """Creates a tuple of instance of Tag from a given tag_indices.
+
+        Args:
+            tag_indices: A list of integer, where each item represents a tag index.
+            label_set: An instance of LabelSet.
+            padding_index: An integer for padded elements.
+
+        Returns:
+            A tuple of instances of Tag.
+        """
+        if self.num_tokens != len(tag_indices):
+            raise ValueError("The number of tokens in text mismatch.")
+
+        tags = []
+        stack: list[str] = []
+        for pos, index in enumerate(tag_indices):
+            status = label_set.get_status(index)
+            label = label_set.get_label(index)
+            if status is None or label is None:
+                continue
+
+            if status == Status.UNIT:
+                tags.append(Tag(Span(pos, 1), label))
+            elif status == Status.END:
+                if stack[-1] == label:
+                    length = len(stack)
+                    tags.append(Tag(Span(pos - length, length + 1), label))
+                stack.clear()
+            elif status == Status.START or status == Status.INSIDE:
+                if not stack or stack[-1] == label:
+                    stack.append(label)
+                else:
+                    stack.clear()
+            else:
+                raise ValueError("Invalid status.")
+
+        return tuple(tags)
+
     def create_tag_indices(
         self, tags: tuple[Tag, ...], label_set: LabelSet, unknown_index: int = -100
     ) -> list[int]:
-        """Returns a list of active tag indices.
+        """Creates a list of active tag indices.
 
         Args:
             label_set: An instance of LabelSet.
@@ -149,7 +190,7 @@ class Alignment:
     def create_tag_bitmap(
         self, tags: tuple[Tag, ...], label_set: LabelSet
     ) -> list[list[bool]]:
-        """Returns a tag bitmap indicating the presence of active tags for each token.
+        """Creates a tag bitmap indicating the presence of active tags for each token.
 
         Args:
             label_set: An instance of LabelSet.
