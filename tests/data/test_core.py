@@ -1,28 +1,30 @@
+from __future__ import annotations
+
 import pytest
 
 from partial_tagger.data import (
-    CharBasedTags,
+    Alignment,
     LabelSet,
     Span,
-    TokenBasedTags,
-    TokenizedText,
+    Tag,
 )
 from partial_tagger.utils import create_tag
 
 
 @pytest.fixture
-def char_based_tags() -> CharBasedTags:
-    return CharBasedTags(
-        (create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC")),
-        "Tokyo is the capital of Japan.",
-    )
+def text() -> str:
+    return "Tokyo is the capital of Japan."
 
 
 @pytest.fixture
-def tokenized_text() -> TokenizedText:
+def char_based_tags() -> tuple[Tag, ...]:
+    return (create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC"))
+
+
+@pytest.fixture
+def alignment() -> Alignment:
     # Tokenized by RoBERTa
-    return TokenizedText(
-        "Tokyo is the capital of Japan.",
+    return Alignment(
         (
             None,
             Span(0, 3),
@@ -71,10 +73,9 @@ def tokenized_text() -> TokenizedText:
 
 
 @pytest.fixture
-def tokenized_truncation_text() -> TokenizedText:
+def truncated_alignment() -> Alignment:
     # Tokenized by RoBERTa
-    return TokenizedText(
-        "Tokyo is the capital of Japan.",
+    return Alignment(
         (
             None,
             Span(0, 3),
@@ -139,18 +140,21 @@ def test_membership_check_is_valid(
     assert is_member == expected
 
 
-def test_tokens_are_valid(tokenized_text: TokenizedText) -> None:
+def test_tokens_are_valid(text: str, alignment: Alignment) -> None:
     token_indices = [1, 2, 3, 4, 5, 6, 7, 8]
     expected = ["Tok", "yo", "is", "the", "capital", "of", "Japan", "."]
 
     tokens = []
     for token_index in token_indices:
-        tokens.append(tokenized_text.get_token(token_index))
+        span = alignment.get_char_span(token_index=token_index)
+        if span is None:
+            continue
+        tokens.append(text[span.start : span.start + span.length])
 
     assert tokens == expected
 
 
-def test_converts_token_span_to_char_span(tokenized_text: TokenizedText) -> None:
+def test_converts_token_span_to_char_span(alignment: Alignment) -> None:
     token_spans = [
         Span(1, 2),  # Tok yo
         Span(3, 1),  # is
@@ -172,17 +176,17 @@ def test_converts_token_span_to_char_span(tokenized_text: TokenizedText) -> None
 
     char_spans = []
     for token_span in token_spans:
-        char_spans.append(tokenized_text.convert_to_char_span(token_span))
+        char_spans.append(alignment.convert_to_char_span(token_span))
 
     assert char_spans == expected
 
 
 def test_ignore_tags_define_in_truncated_text(
-    tokenized_truncation_text: TokenizedText, char_based_tags: CharBasedTags
+    truncated_alignment: Alignment, char_based_tags: tuple[Tag, ...]
 ) -> None:
-    expected = TokenBasedTags((create_tag(1, 2, "LOC"),), tokenized_truncation_text)
+    expected = (create_tag(1, 2, "LOC"),)
 
-    assert char_based_tags.convert_to_token_based(tokenized_truncation_text) == expected
+    assert truncated_alignment.align_token_based(char_based_tags) == expected
 
 
 def test_label_is_valid(label_set: LabelSet) -> None:

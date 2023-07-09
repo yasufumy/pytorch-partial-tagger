@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from bisect import bisect_left
-from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum, auto
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=True)
 class Span:
     start: int
     length: int
@@ -15,7 +14,7 @@ class Span:
         return hash((self.start, self.length))
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=True)
 class Tag:
     span: Span
     label: str
@@ -29,58 +28,20 @@ class Tag:
         return self.span.length
 
 
-class TokenizedText:
-    """A TokenizedText represents a text that has been tokenized and provides
-    convenient methods to access its tokens and spans.
-
-    Args:
-        text: An original text.
-        char_spans: A tuple of character spans for each token, or None if
-            there is no corresponding span.
-        token_indices: A tuple of token indices for each character, or -1 if there is
-            no corresponding token.
-        addtional_token: A string used to represent token without no corresponding
-            character span. Defaults to "[Token]".
-    """
-
+class Alignment:
     def __init__(
-        self,
-        text: str,
-        char_spans: tuple[Span | None, ...],
-        token_indices: tuple[int, ...],
-        addtional_token: str = "[Token]",
+        self, char_spans: tuple[Span | None, ...], token_indices: tuple[int, ...]
     ):
-        self.__text = text
         self.__char_spans = char_spans
         self.__token_indices = token_indices
-        self.__addtional_token = addtional_token
 
-    def __repr__(self) -> str:
-        text = []
-        for span in self.__char_spans:
-            if span is None:
-                text.append(self.__addtional_token)
-            else:
-                start = span.start
-                end = start + span.length
-                text.append(self.__text[start:end])
-        return " ".join(text)
+    @property
+    def char_length(self) -> int:
+        return len(self.__token_indices)
 
     @property
     def num_tokens(self) -> int:
         return len(self.__char_spans)
-
-    def get_text(self) -> str:
-        return self.__text
-
-    def get_token(self, token_index: int) -> str:
-        char_span = self.__char_spans[token_index]
-        if char_span is None:
-            return self.__addtional_token
-        else:
-            start = char_span.start
-            end = start + char_span.length
-            return self.__text[start:end]
 
     def get_char_span(self, token_index: int) -> Span | None:
         return self.__char_spans[token_index]
@@ -114,114 +75,44 @@ class TokenizedText:
             return None
 
         return Span(
-            char_span_start.start,
-            char_span_end.start + char_span_end.length - char_span_start.start,
+            start=char_span_start.start,
+            length=char_span_end.start + char_span_end.length - char_span_start.start,
         )
 
-
-@dataclass(frozen=True, eq=True)
-class CharBasedTags:
-    """Character-based tags represent a collection of tags that occur in a text
-    on the character level.
-
-    Args:
-        tags: A tuple of instances of Tag representing tags that occur in a text.
-        text: A text in which tags are defined.
-
-    """
-
-    tags: tuple[Tag, ...]
-    text: str
-
-    def __iter__(self) -> Iterator[Tag]:
-        yield from self.tags
-
-    def __repr__(self) -> str:
-        tag_strs = []
-        for tag in self:
-            start = tag.start
-            end = tag.start + tag.length
-            tag_str = f"{self.text[start:end]} ({tag.label})"
-            tag_strs.append(tag_str)
-        return f"({', '.join(tag_strs)})"
-
-    def convert_to_token_based(self, tokenized_text: TokenizedText) -> "TokenBasedTags":
-        """Converts an instance CharBasedTags to an instance of TokenBasedTags
-        based on a provided instance of TokenizedText. Note that this operation
-        is irreversible. For example, if the given tokenized text is truncated,
-        tags associated with a truncated part will be ignored.
-
-        Args:
-            tokenized_text: An instance of TokenizedText.
+    def align_char_based(self, tags: tuple[Tag, ...]) -> tuple[Tag, ...]:
+        """Aligns token-based tags to char-based tags.
 
         Returns:
-            An instance of TokenBasedTags.
-
+            A tuple of instances of Tag.
         """
-        if self.text != tokenized_text.get_text():
-            raise ValueError("The text doesn't match")
+        aligned_tags = []
+        for tag in tags:
+            char_span = self.convert_to_char_span(tag.span)
+            if char_span is not None:
+                aligned_tags.append(Tag(char_span, tag.label))
 
-        tags = []
-        for tag in self.tags:
-            start = tokenized_text.convert_to_token_index(tag.start)
-            end = tokenized_text.convert_to_token_index(tag.start + tag.length - 1)
+        return tuple(aligned_tags)
+
+    def align_token_based(self, tags: tuple[Tag, ...]) -> tuple[Tag, ...]:
+        """Aligns char-based tags to token-based tags.
+
+        Returns:
+            A tuple of instances of Tag.
+        """
+        aligned_tags = []
+        for tag in tags:
+            start = self.convert_to_token_index(tag.start)
+            end = self.convert_to_token_index(tag.start + tag.length - 1)
             if start == -1 or end == -1:
                 # There is no char span which strictly corresponds a given tag.
                 continue
             length = end - start + 1
-            tags.append(Tag(Span(start, length), tag.label))
+            aligned_tags.append(Tag(Span(start, length), tag.label))
 
-        return TokenBasedTags(tuple(tags), tokenized_text)
+        return tuple(aligned_tags)
 
-
-@dataclass(frozen=True)
-class TokenBasedTags:
-    """Token-based tags represent a collection of tags that occur in a text
-    on the token level.
-
-    Args:
-        tags: A tuple of instances of Tag representing tags that occur in a text.
-        text: A tokenized text in which tags are defined.
-
-    """
-
-    tags: tuple[Tag, ...]
-    tokenized_text: TokenizedText
-
-    def __iter__(self) -> Iterator[Tag]:
-        yield from self.tags
-
-    def __repr__(self) -> str:
-        tag_strs = []
-        for tag in self:
-            start = tag.start
-            end = start + tag.length
-            tag_str = " ".join(
-                self.tokenized_text.get_token(token_index)
-                for token_index in range(start, end)
-            )
-            tag_strs.append(f"{tag_str} ({tag.label})")
-        return f"({', '.join(tag_strs)})"
-
-    @property
-    def num_tokens(self) -> int:
-        return self.tokenized_text.num_tokens
-
-    def convert_to_char_based(self) -> CharBasedTags:
-        """Converts an instance of TokenBasedTags to an instance of CharBasedTags.
-
-        Returns:
-            An instance of CharBasedTags.
-        """
-        tags = []
-        for tag in self.tags:
-            char_span = self.tokenized_text.convert_to_char_span(tag.span)
-            if char_span is not None:
-                tags.append(Tag(char_span, tag.label))
-        return CharBasedTags(tuple(tags), self.tokenized_text.get_text())
-
-    def get_tag_indices(
-        self, label_set: LabelSet, unknown_index: int = -100
+    def create_tag_indices(
+        self, tags: tuple[Tag, ...], label_set: LabelSet, unknown_index: int = -100
     ) -> list[int]:
         """Returns a list of active tag indices.
 
@@ -234,14 +125,14 @@ class TokenBasedTags:
             A list of integers, where each integer represents an active tag.
 
         """
-        tag_indices = [unknown_index] * self.tokenized_text.num_tokens
+        tag_indices = [unknown_index] * self.num_tokens
 
-        for token_index in range(self.tokenized_text.num_tokens):
-            span = self.tokenized_text.get_char_span(token_index)
+        for token_index in range(self.num_tokens):
+            span = self.get_char_span(token_index)
             if span is None:
                 tag_indices[token_index] = label_set.get_outside_index()
 
-        for tag in self.tags:
+        for tag in tags:
             start = tag.start
             end = tag.start + tag.length - 1
             if start == end:
@@ -255,7 +146,9 @@ class TokenBasedTags:
 
         return tag_indices
 
-    def get_tag_bitmap(self, label_set: LabelSet) -> list[list[bool]]:
+    def create_tag_bitmap(
+        self, tags: tuple[Tag, ...], label_set: LabelSet
+    ) -> list[list[bool]]:
         """Returns a tag bitmap indicating the presence of active tags for each token.
 
         Args:
@@ -269,12 +162,12 @@ class TokenBasedTags:
             [False] * label_set.get_tag_size() for _ in range(self.num_tokens)
         ]
         for token_index in range(self.num_tokens):
-            span = self.tokenized_text.get_char_span(token_index)
+            span = self.get_char_span(token_index)
             if span is None:
                 tag_bitmap[token_index][label_set.get_outside_index()] = True
 
         for tag in sorted(
-            self,
+            tags,
             key=lambda tag: (tag.start, tag.start + tag.length),
         ):
             start = tag.start
