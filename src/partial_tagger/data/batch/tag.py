@@ -16,7 +16,7 @@ class TagsBatch:
 
     def __init__(
         self,
-        tags_batch: tuple[tuple[Tag, ...], ...],
+        tags_batch: tuple[set[Tag], ...],
         alignments: tuple[Alignment, ...],
         label_set: LabelSet,
         device: torch.device | None = None,
@@ -34,11 +34,11 @@ class TagsBatch:
         return len(self.__tags_batch)
 
     @property
-    def char_based(self) -> tuple[tuple[Tag, ...], ...]:
+    def char_based(self) -> tuple[set[Tag], ...]:
         return self.__tags_batch
 
     @property
-    def token_based(self) -> tuple[tuple[Tag, ...], ...]:
+    def token_based(self) -> tuple[set[Tag], ...]:
         return tuple(
             alignment.align_token_based(tags)
             for tags, alignment in zip(self.__tags_batch, self.__alignments)

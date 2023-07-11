@@ -135,8 +135,8 @@ class Trainer:
 
     def __call__(
         self,
-        train_dataset: list[tuple[str, tuple[Tag, ...]]],
-        validation_dataset: list[tuple[str, tuple[Tag, ...]]],
+        train_dataset: list[tuple[str, set[Tag]]],
+        validation_dataset: list[tuple[str, set[Tag]]],
         device: torch.device,
         logger: Logger | None = None,
     ) -> Recognizer:
@@ -217,16 +217,6 @@ class Trainer:
 
                 log_potentials, _ = tagger(text_batch.tagger_inputs, mask)
 
-                import numpy as np
-
-                t = np.load("tag_bitmap.numpy")
-                x = np.load("log_potentials.numpy")
-                m = np.load("mask.numpy")
-
-                assert np.array_equal(x, log_potentials.detach().numpy())
-                assert np.array_equal(t, tags_batch.get_tag_bitmap().numpy())
-                assert np.array_equal(m, mask.numpy())
-
                 loss = compute_partially_supervised_loss(
                     log_potentials,
                     tags_batch.get_tag_bitmap(),
@@ -247,9 +237,6 @@ class Trainer:
 
                 epoch_loss += loss.item() * text_batch.size
 
-                breakpoint()
-                break
-
             tagger.eval()
             metric = Metric()
             for text_batch, tags_batch in validation_dataloader:
@@ -263,7 +250,6 @@ class Trainer:
                 )
 
                 metric(predictions, tags_batch.char_based)
-                break
 
             scores = metric.get_scores()
 

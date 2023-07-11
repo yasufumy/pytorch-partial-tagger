@@ -17,8 +17,8 @@ def text() -> str:
 
 
 @pytest.fixture
-def char_based_tags() -> tuple[Tag, ...]:
-    return (create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC"))
+def char_based_tags() -> set[Tag]:
+    return {create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC")}
 
 
 @pytest.fixture
@@ -182,9 +182,9 @@ def test_converts_token_span_to_char_span(alignment: Alignment) -> None:
 
 
 def test_ignore_tags_define_in_truncated_text(
-    truncated_alignment: Alignment, char_based_tags: tuple[Tag, ...]
+    truncated_alignment: Alignment, char_based_tags: set[Tag]
 ) -> None:
-    expected = (create_tag(1, 2, "LOC"),)
+    expected = {create_tag(1, 2, "LOC")}
 
     assert truncated_alignment.align_token_based(char_based_tags) == expected
 

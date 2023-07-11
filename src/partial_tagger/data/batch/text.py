@@ -14,7 +14,7 @@ def create_token_based_tags(
     tag_indices: torch.Tensor,
     label_set: LabelSet,
     padding_index: int,
-) -> tuple[tuple[Tag, ...], ...]:
+) -> tuple[set[Tag], ...]:
     tag_indices_unpadded = tuple(
         tuple(i for i in x if i != padding_index) for x in tag_indices.tolist()
     )
@@ -46,9 +46,9 @@ class TextBatch:
 
     def __init__(
         self,
-        alignments: tuple[Alignment, ...],
         tagger_inputs: dict[str, torch.Tensor],
         mask: torch.Tensor,
+        alignments: tuple[Alignment, ...],
         device: torch.device | None = None,
     ):
         self.alignments = alignments
@@ -79,7 +79,7 @@ class TextBatch:
 
     def create_char_based_tags(
         self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
-    ) -> tuple[tuple[Tag, ...], ...]:
+    ) -> tuple[set[Tag], ...]:
         """Creates character-based tags for text batch based on a given tag indices
         and an instance of LabelSet.
 
@@ -102,7 +102,7 @@ class TextBatch:
 
     def create_token_based_tags(
         self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
-    ) -> tuple[tuple[Tag, ...], ...]:
+    ) -> tuple[set[Tag], ...]:
         """Creates token-based tags for text batch based on a given tag indices
         and an instance of LabelSet.
 
@@ -200,6 +200,10 @@ class TransformerTokenizer(BaseTokenizer):
                 end = char_span.start + char_span.length
                 token_indices[start:end] = [token_index] * char_span.length
 
-            alignments.append(Alignment(char_spans, tuple(token_indices)))
+            alignments.append(
+                Alignment(char_spans=char_spans, token_indices=tuple(token_indices))
+            )
 
-        return TextBatch(tuple(alignments), batch_encoding, mask)
+        return TextBatch(
+            tagger_inputs=batch_encoding, mask=mask, alignments=tuple(alignments)
+        )

@@ -18,7 +18,7 @@ def matcher() -> SpacyMatcher:
 
 def test_matches_valid_tags(matcher: SpacyMatcher) -> None:
     text = "Tokyo is the capital of Japan."
-    expected = (Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC"))
+    expected = {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")}
 
     tags = matcher(text)
 

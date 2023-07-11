@@ -79,7 +79,7 @@ class Alignment:
             length=char_span_end.start + char_span_end.length - char_span_start.start,
         )
 
-    def align_char_based(self, tags: tuple[Tag, ...]) -> tuple[Tag, ...]:
+    def align_char_based(self, tags: set[Tag]) -> set[Tag]:
         """Aligns token-based tags to char-based tags.
 
         Returns:
@@ -91,9 +91,9 @@ class Alignment:
             if char_span is not None:
                 aligned_tags.append(Tag(char_span, tag.label))
 
-        return tuple(aligned_tags)
+        return set(aligned_tags)
 
-    def align_token_based(self, tags: tuple[Tag, ...]) -> tuple[Tag, ...]:
+    def align_token_based(self, tags: set[Tag]) -> set[Tag]:
         """Aligns char-based tags to token-based tags.
 
         Returns:
@@ -109,11 +109,11 @@ class Alignment:
             length = end - start + 1
             aligned_tags.append(Tag(Span(start, length), tag.label))
 
-        return tuple(aligned_tags)
+        return set(aligned_tags)
 
     def create_tags(
         self, tag_indices: list[int], label_set: LabelSet, padding_index: int = -1
-    ) -> tuple[Tag, ...]:
+    ) -> set[Tag]:
         """Creates a tuple of instance of Tag from a given tag_indices.
 
         Args:
@@ -150,10 +150,10 @@ class Alignment:
             else:
                 raise ValueError("Invalid status.")
 
-        return tuple(tags)
+        return set(tags)
 
     def create_tag_indices(
-        self, tags: tuple[Tag, ...], label_set: LabelSet, unknown_index: int = -100
+        self, tags: set[Tag], label_set: LabelSet, unknown_index: int = -100
     ) -> list[int]:
         """Creates a list of active tag indices.
 
@@ -173,7 +173,10 @@ class Alignment:
             if span is None:
                 tag_indices[token_index] = label_set.get_outside_index()
 
-        for tag in tags:
+        for tag in sorted(
+            tags,
+            key=lambda tag: (tag.start, tag.start + tag.length),
+        ):
             start = tag.start
             end = tag.start + tag.length - 1
             if start == end:
@@ -188,7 +191,7 @@ class Alignment:
         return tag_indices
 
     def create_tag_bitmap(
-        self, tags: tuple[Tag, ...], label_set: LabelSet
+        self, tags: set[Tag], label_set: LabelSet
     ) -> list[list[bool]]:
         """Creates a tag bitmap indicating the presence of active tags for each token.
 

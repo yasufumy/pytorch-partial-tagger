@@ -13,13 +13,13 @@ from partial_tagger.data.batch.text import TransformerTokenizer
     [
         (
             "Tokyo is the capital of Japan.",
-            (Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")),
+            {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")},
             torch.tensor([[0, 1, 3, -100, -100, -100, -100, 4, -100, 0]]),
         ),
         (
             "Tokyo is the capital of Japan." * 100,
-            tuple(Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100))
-            + tuple(Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)),
+            {Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100)}
+            | {Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)},
             torch.tensor(
                 [
                     [0]
@@ -35,7 +35,7 @@ def test_tag_indices_are_valid(
     tokenizer: TransformerTokenizer,
     label_set: LabelSet,
     text: str,
-    char_based_tags: tuple[Tag, ...],
+    char_based_tags: set[Tag],
     expected: torch.Tensor,
 ) -> None:
     text_batch = tokenizer((text,))
@@ -52,7 +52,7 @@ def test_tag_indices_are_valid(
 params = [
     (
         "The Tokyo Metropolitan Government is the government of the Tokyo Metropolis.",
-        (Tag(Span(4, 29), "ORG"), Tag(Span(4, 5), "LOC"), Tag(Span(59, 5), "LOC")),
+        {Tag(Span(4, 29), "ORG"), Tag(Span(4, 5), "LOC"), Tag(Span(59, 5), "LOC")},
         torch.tensor(
             [
                 [
@@ -347,7 +347,7 @@ params = [
     ),
     (
         "John Doe is a multiple-use placeholder name.",
-        (Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER"), Tag(Span(0, 8), "PER")),
+        {Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER"), Tag(Span(0, 8), "PER")},
         torch.Tensor(
             [
                 [
@@ -591,7 +591,7 @@ def test_tag_bitmap_is_valid(
     label_set: LabelSet,
     tokenizer: TransformerTokenizer,
     text: str,
-    tags: tuple[Tag, ...],
+    tags: set[Tag],
     expected: torch.Tensor,
 ) -> None:
     text_batch = tokenizer((text,))
