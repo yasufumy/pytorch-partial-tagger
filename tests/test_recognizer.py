@@ -1,12 +1,15 @@
 import torch
 
-from partial_tagger.data import CharBasedTags, Span, Tag
+from partial_tagger.data import Span, Tag
 from partial_tagger.utils import create_trainer
 
 
 def test_recognizer_outputs_valid_char_based_tags() -> None:
     text = "Tokyo is the capital of Japan."
-    tags = CharBasedTags((Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")), text)
+    tags = (
+        Tag(span=Span(start=0, length=5), label="LOC"),
+        Tag(span=Span(start=24, length=5), label="LOC"),
+    )
     dataset = [(text, tags)]
     device = torch.device("cpu")
 
@@ -16,4 +19,4 @@ def test_recognizer_outputs_valid_char_based_tags() -> None:
     output = recognizer((text,), 1, device)
 
     assert len(output) == 1
-    assert isinstance(output[0], CharBasedTags)
+    assert all(isinstance(tag, Tag) for tag in output[0])

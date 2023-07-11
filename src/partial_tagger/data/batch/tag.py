@@ -96,7 +96,7 @@ class TagsBatch:
 
         for tags, alignment in zip(self.__tags_batch, self.__alignments):
             bitmap = alignment.create_tag_bitmap(
-                alignment.align_token_based(tags=tags), label_set=label_set
+                tags=alignment.align_token_based(tags=tags), label_set=label_set
             )
             tag_bitmap.append(
                 bitmap

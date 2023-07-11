@@ -177,8 +177,12 @@ class TransformerTokenizer(BaseTokenizer):
         batch_encoding = self.__tokenizer(texts, **self.__tokenizer_args)
 
         mappings = batch_encoding.pop("offset_mapping").tolist()
+
         pad_token_id = self.__tokenizer.pad_token_id
-        tokenized_text_lengths = (batch_encoding.input_ids != pad_token_id).sum(dim=1)
+
+        mask = batch_encoding.input_ids != pad_token_id
+
+        tokenized_text_lengths = mask.sum(dim=1)
 
         alignments = []
         for tokenized_text_length, mapping, text in zip(
@@ -197,7 +201,5 @@ class TransformerTokenizer(BaseTokenizer):
                 token_indices[start:end] = [token_index] * char_span.length
 
             alignments.append(Alignment(char_spans, tuple(token_indices)))
-
-        mask = batch_encoding.input_ids != pad_token_id
 
         return TextBatch(tuple(alignments), batch_encoding, mask)
