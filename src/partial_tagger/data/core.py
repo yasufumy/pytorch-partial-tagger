@@ -10,9 +10,6 @@ class Span:
     start: int
     length: int
 
-    def __hash__(self) -> int:
-        return hash((self.start, self.length))
-
 
 @dataclass(frozen=True)
 class Tag:
@@ -29,6 +26,21 @@ class Tag:
 
 
 class Alignment:
+    """An alignment class responsible for manipulating character-based tags based on
+    a tokenization result, which is useful for encoding tags to tag_indices/tag_bitmap
+    and decoding tag_indices/tag_bitmap to tags.
+
+    Args:
+        char_spans: A tuple of character spans for each token, or None if
+            there is no corresponding span.
+        token_indices: A tuple of token indices for each character, or -1 if there is
+            no corresponding token.
+
+    Attributes:
+        char_length: The text length before tokenization.
+        num_tokens: The number of tokens after tokenization.
+    """
+
     def __init__(
         self, char_spans: tuple[Span | None, ...], token_indices: tuple[int, ...]
     ):
@@ -42,21 +54,6 @@ class Alignment:
     @property
     def num_tokens(self) -> int:
         return len(self.__char_spans)
-
-    def get_char_span(self, token_index: int) -> Span | None:
-        return self.__char_spans[token_index]
-
-    def convert_to_token_index(self, char_index: int) -> int:
-        """Converts a character index to its corresponding token index.
-
-        Args:
-            char_index: A character index.
-
-        Returns:
-            A corresponding token index, or -1 if there is no corresponding token.
-
-        """
-        return self.__token_indices[char_index]
 
     def convert_to_char_span(self, token_span: Span) -> Span | None:
         """Converts a token span to its corresponding character span.
@@ -79,11 +76,14 @@ class Alignment:
             length=char_span_end.start + char_span_end.length - char_span_start.start,
         )
 
-    def align_char_based(self, tags: set[Tag]) -> set[Tag]:
-        """Aligns token-based tags to char-based tags.
+    def convert_to_char_based(self, tags: set[Tag]) -> set[Tag]:
+        """Converts token-based tags to character-based tags.
+
+        Args:
+            tags: A set of token-based tags
 
         Returns:
-            A tuple of instances of Tag.
+            A set of character-based tags.
         """
         aligned_tags = []
         for tag in tags:
@@ -93,16 +93,21 @@ class Alignment:
 
         return set(aligned_tags)
 
-    def align_token_based(self, tags: set[Tag]) -> set[Tag]:
-        """Aligns char-based tags to token-based tags.
+    def convert_to_token_based(self, tags: set[Tag]) -> set[Tag]:
+        """Converts character-based tags to token-based tags. Note that this operation
+        is irreversible. For example, if a text is truncated in tokenization,
+        tags associated with a truncated part will be ignored.
+
+        Args:
+            tags: A set of character-based tags
 
         Returns:
-            A tuple of instances of Tag.
+            A set of token-based tags.
         """
         aligned_tags = []
         for tag in tags:
-            start = self.convert_to_token_index(tag.start)
-            end = self.convert_to_token_index(tag.start + tag.length - 1)
+            start = self.__token_indices[tag.start]
+            end = self.__token_indices[tag.start + tag.length - 1]
             if start == -1 or end == -1:
                 # There is no char span which strictly corresponds a given tag.
                 continue
@@ -111,10 +116,10 @@ class Alignment:
 
         return set(aligned_tags)
 
-    def create_tags(
+    def create_char_based_tags(
         self, tag_indices: list[int], label_set: LabelSet, padding_index: int = -1
     ) -> set[Tag]:
-        """Creates a tuple of instance of Tag from a given tag_indices.
+        """Creates a set of character-based tags from given tag indices.
 
         Args:
             tag_indices: A list of integer, where each item represents a tag index.
@@ -122,7 +127,7 @@ class Alignment:
             padding_index: An integer for padded elements.
 
         Returns:
-            A tuple of instances of Tag.
+            A set of character-based tags.
         """
         if self.num_tokens != len(tag_indices):
             raise ValueError("The number of tokens in text mismatch.")
@@ -138,7 +143,7 @@ class Alignment:
             if status == Status.UNIT:
                 tags.append(Tag(Span(pos, 1), label))
             elif status == Status.END:
-                if stack[-1] == label:
+                if stack and stack[-1] == label:
                     length = len(stack)
                     tags.append(Tag(Span(pos - length, length + 1), label))
                 stack.clear()
@@ -150,12 +155,13 @@ class Alignment:
             else:
                 raise ValueError("Invalid status.")
 
-        return set(tags)
+        return self.convert_to_char_based(set(tags))
 
     def create_tag_indices(
         self, tags: set[Tag], label_set: LabelSet, unknown_index: int = -100
     ) -> list[int]:
-        """Creates a list of active tag indices.
+        """Creates a list of active tag indices where given tags are expected
+        to be character-based.
 
         Args:
             label_set: An instance of LabelSet.
@@ -166,10 +172,12 @@ class Alignment:
             A list of integers, where each integer represents an active tag.
 
         """
+        tags = self.convert_to_token_based(tags)
+
         tag_indices = [unknown_index] * self.num_tokens
 
         for token_index in range(self.num_tokens):
-            span = self.get_char_span(token_index)
+            span = self.__char_spans[token_index]
             if span is None:
                 tag_indices[token_index] = label_set.get_outside_index()
 
@@ -193,7 +201,8 @@ class Alignment:
     def create_tag_bitmap(
         self, tags: set[Tag], label_set: LabelSet
     ) -> list[list[bool]]:
-        """Creates a tag bitmap indicating the presence of active tags for each token.
+        """Creates a tag bitmap indicating the presence of active tags for each token
+        where given tags are expected to be character-based.
 
         Args:
             label_set: An instance of LabelSet.
@@ -202,11 +211,13 @@ class Alignment:
             A list of lists of booleans, where each boolean represents an active tag.
 
         """
+        tags = self.convert_to_token_based(tags)
+
         tag_bitmap = [
             [False] * label_set.get_tag_size() for _ in range(self.num_tokens)
         ]
         for token_index in range(self.num_tokens):
-            span = self.get_char_span(token_index)
+            span = self.__char_spans[token_index]
             if span is None:
                 tag_bitmap[token_index][label_set.get_outside_index()] = True
 

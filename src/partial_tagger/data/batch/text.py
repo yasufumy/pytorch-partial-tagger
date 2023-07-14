@@ -9,39 +9,22 @@ from transformers.tokenization_utils import PreTrainedTokenizer
 from partial_tagger.data.core import Alignment, LabelSet, Span, Tag
 
 
-def create_token_based_tags(
-    alignments: tuple[Alignment, ...],
-    tag_indices: torch.Tensor,
-    label_set: LabelSet,
-    padding_index: int,
-) -> tuple[set[Tag], ...]:
-    tag_indices_unpadded = tuple(
-        tuple(i for i in x if i != padding_index) for x in tag_indices.tolist()
-    )
-
-    if len(tag_indices_unpadded) != len(alignments):
-        raise ValueError("Batch size mismatch.")
-
-    tags_batch = []
-
-    for alignment, indices in zip(alignments, tag_indices_unpadded):
-        tags_batch.append(alignment.create_tags(indices, label_set, padding_index))
-
-    return tuple(tags_batch)
-
-
 class TextBatch:
     """A batch of text data for tagging.
 
     Args:
-        alignments: A tuple of instances of Alignment.
         tagger_inputs: A dictionary that maps string keys to a tensor values.
         mask: A [batch_size, sequence_length] float tensor representing
             a mask for a batch.
+        alignments: A tuple of instances of Alignment.
         device: A device on which to place tensors. Defaults to None.
 
     Attributes:
-        tokenized_texts: A tuple of instances of TokenizedText.
+        tagger_inputs: A dictionary that maps string keys to a tensor values.
+        mask: A [batch_size, sequence_length] float tensor representing
+            a mask for a batch.
+        alignments: A tuple of instances of Alignment.
+        size: An integer representing batch size.
     """
 
     def __init__(
@@ -80,7 +63,7 @@ class TextBatch:
     def create_char_based_tags(
         self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
     ) -> tuple[set[Tag], ...]:
-        """Creates character-based tags for text batch based on a given tag indices
+        """Creates character-based tags for text batch based on given tag indices
         and an instance of LabelSet.
 
         Args:
@@ -89,34 +72,27 @@ class TextBatch:
             padding_index: An integer representing a padding index. Defaults to -1.
 
         Returns:
-            A tuple of instances of CharBasedTags.
+            A tuple where each item is a set of character-based tags.
         """
-        token_based_tags = self.create_token_based_tags(
-            tag_indices, label_set, padding_index
+        tag_indices_unpadded = tuple(
+            tuple(i for i in x if i != padding_index) for x in tag_indices.tolist()
         )
-        char_based_tags = []
-        for tag, alignment in zip(token_based_tags, self.alignments):
-            char_based_tags.append(alignment.align_char_based(tag))
 
-        return tuple(char_based_tags)
+        if len(tag_indices_unpadded) != len(self.alignments):
+            raise ValueError("Batch size mismatch.")
 
-    def create_token_based_tags(
-        self, tag_indices: torch.Tensor, label_set: LabelSet, padding_index: int = -1
-    ) -> tuple[set[Tag], ...]:
-        """Creates token-based tags for text batch based on a given tag indices
-        and an instance of LabelSet.
+        tags_batch = []
 
-        Args:
-            tag_indices: A [batch_size, sequence_length] integer tensor of tag indices.
-            label_set: An instance of LabelSet to use for tag conversion.
-            padding_index: An integer representing a padding index. Defaults to -1.
+        for alignment, indices in zip(self.alignments, tag_indices_unpadded):
+            tags_batch.append(
+                alignment.create_char_based_tags(
+                    tag_indices=indices,
+                    label_set=label_set,
+                    padding_index=padding_index,
+                )
+            )
 
-        Returns:
-            A tuple of instances of TokenBasedTags.
-        """
-        return create_token_based_tags(
-            self.alignments, tag_indices, label_set, padding_index
-        )
+        return tuple(tags_batch)
 
 
 class BaseTokenizer(metaclass=ABCMeta):

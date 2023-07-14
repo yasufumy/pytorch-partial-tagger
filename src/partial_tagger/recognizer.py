@@ -41,7 +41,7 @@ class Recognizer:
             device: The device to use for prediction.
 
         Returns:
-            A tuple of an instance of CharBasedTags representing predicted tags
+            A tuple where each item is a set of predicted character-based tags
             for each input text.
 
         """
@@ -62,7 +62,9 @@ class Recognizer:
 
             predictions.extend(
                 text_batch.create_char_based_tags(
-                    tag_indices, self.__label_set, tagger.padding_index
+                    tag_indices=tag_indices,
+                    label_set=self.__label_set,
+                    padding_index=tagger.padding_index,
                 )
             )
 

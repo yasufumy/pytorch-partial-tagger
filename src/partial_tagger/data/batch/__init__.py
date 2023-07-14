@@ -11,18 +11,15 @@ class Collator:
         self.__label_set = label_set
 
     def __call__(
-        self, examples: list[tuple[str, tuple[Tag, ...]]]
+        self, examples: list[tuple[str, set[Tag]]]
     ) -> tuple[TextBatch, TagsBatch]:
-        texts: tuple[str, ...]
-        char_based_tags_batch: tuple[Tag, ...]
-
-        texts, char_based_tags_batch = zip(*examples)
+        texts, tags_batch = zip(*examples)
 
         text_batch = self.__tokenizer(texts=texts)
 
         tags_batch = TagsBatch(
-            tags_batch=char_based_tags_batch,
-            alignments=text_batch.alignments,
+            tags_batch=tags_batch,
             label_set=self.__label_set,
+            alignments=text_batch.alignments,
         )
         return text_batch, tags_batch

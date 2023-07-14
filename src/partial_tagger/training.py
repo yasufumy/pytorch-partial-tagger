@@ -218,13 +218,13 @@ class Trainer:
                 log_potentials, _ = tagger(text_batch.tagger_inputs, mask)
 
                 loss = compute_partially_supervised_loss(
-                    log_potentials,
-                    tags_batch.get_tag_bitmap(),
-                    mask,
-                    label_set.get_outside_index(),
-                    self.__target_entity_ratio,
-                    self.__entity_ratio_margin,
-                    self.__balancing_coefficient,
+                    log_potentials=log_potentials,
+                    tag_bitmap=tags_batch.get_tag_bitmap(),
+                    mask=mask,
+                    outside_index=label_set.get_outside_index(),
+                    target_entity_ratio=self.__target_entity_ratio,
+                    entity_ratio_margin=self.__entity_ratio_margin,
+                    balancing_coefficient=self.__balancing_coefficient,
                 )
                 loss.backward()
 
@@ -246,7 +246,9 @@ class Trainer:
                 tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
 
                 predictions = text_batch.create_char_based_tags(
-                    tag_indices, label_set, tagger.padding_index
+                    tag_indices=tag_indices,
+                    label_set=label_set,
+                    padding_index=tagger.padding_index,
                 )
 
                 metric(predictions, tags_batch.char_based)
@@ -270,4 +272,6 @@ class Trainer:
         best_tagger_state.seek(0)
         tagger.load_state_dict(torch.load(best_tagger_state))
 
-        return Recognizer(tagger, self.__tokenizer, label_set)
+        return Recognizer(
+            tagger=tagger, tokenizer=self.__tokenizer, label_set=label_set
+        )
