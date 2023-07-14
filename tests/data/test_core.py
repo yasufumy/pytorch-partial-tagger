@@ -140,20 +140,6 @@ def test_membership_check_is_valid(
     assert is_member == expected
 
 
-def test_tokens_are_valid(text: str, alignment: Alignment) -> None:
-    token_indices = [1, 2, 3, 4, 5, 6, 7, 8]
-    expected = ["Tok", "yo", "is", "the", "capital", "of", "Japan", "."]
-
-    tokens = []
-    for token_index in token_indices:
-        span = alignment.get_char_span(token_index=token_index)
-        if span is None:
-            continue
-        tokens.append(text[span.start : span.start + span.length])
-
-    assert tokens == expected
-
-
 def test_converts_token_span_to_char_span(alignment: Alignment) -> None:
     token_spans = [
         Span(1, 2),  # Tok yo
@@ -186,7 +172,7 @@ def test_ignore_tags_define_in_truncated_text(
 ) -> None:
     expected = {create_tag(1, 2, "LOC")}
 
-    assert truncated_alignment.align_token_based(char_based_tags) == expected
+    assert truncated_alignment.convert_to_token_based(char_based_tags) == expected
 
 
 def test_label_is_valid(label_set: LabelSet) -> None:
