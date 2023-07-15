@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import torch
 from torch.utils.data import DataLoader
 
-from partial_tagger.data import CharBasedTags, LabelSet
+from partial_tagger.data import LabelSet, Tag
 from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
 from partial_tagger.tagger import SequenceTagger
 
@@ -32,7 +32,7 @@ class Recognizer:
 
     def __call__(
         self, texts: tuple[str, ...], batch_size: int, device: torch.device
-    ) -> tuple[CharBasedTags, ...]:
+    ) -> tuple[set[Tag], ...]:
         """Predicts character-based tags from given texts using a trained tagger.
 
         Args:
@@ -41,7 +41,7 @@ class Recognizer:
             device: The device to use for prediction.
 
         Returns:
-            A tuple of an instance of CharBasedTags representing predicted tags
+            A tuple where each item is a set of predicted character-based tags
             for each input text.
 
         """
@@ -62,7 +62,9 @@ class Recognizer:
 
             predictions.extend(
                 text_batch.create_char_based_tags(
-                    tag_indices, self.__label_set, tagger.padding_index
+                    tag_indices=tag_indices,
+                    label_set=self.__label_set,
+                    padding_index=tagger.padding_index,
                 )
             )
 

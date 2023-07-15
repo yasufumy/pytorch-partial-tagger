@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from partial_tagger.data import CharBasedTags, LabelSet, Span, Tag
+from partial_tagger.data import LabelSet, Span, Tag
 from partial_tagger.data.batch.tag import TagsBatch
 from partial_tagger.data.batch.text import TransformerTokenizer
 
@@ -13,19 +13,13 @@ from partial_tagger.data.batch.text import TransformerTokenizer
     [
         (
             "Tokyo is the capital of Japan.",
-            CharBasedTags(
-                (Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")),
-                "Tokyo is the capital of Japan.",
-            ),
+            {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")},
             torch.tensor([[0, 1, 3, -100, -100, -100, -100, 4, -100, 0]]),
         ),
         (
             "Tokyo is the capital of Japan." * 100,
-            CharBasedTags(
-                tuple(Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100))
-                + tuple(Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)),
-                "Tokyo is the capital of Japan." * 100,
-            ),
+            {Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100)}
+            | {Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)},
             torch.tensor(
                 [
                     [0]
@@ -41,13 +35,14 @@ def test_tag_indices_are_valid(
     tokenizer: TransformerTokenizer,
     label_set: LabelSet,
     text: str,
-    char_based_tags: CharBasedTags,
+    char_based_tags: set[Tag],
     expected: torch.Tensor,
 ) -> None:
     text_batch = tokenizer((text,))
     tags_batch = TagsBatch(
-        (char_based_tags.convert_to_token_based(text_batch.tokenized_texts[0]),),
-        label_set,
+        tags_batch=(char_based_tags,),
+        alignments=text_batch.alignments,
+        label_set=label_set,
     )
     tag_indices = tags_batch.get_tag_indices()
 
@@ -57,7 +52,7 @@ def test_tag_indices_are_valid(
 params = [
     (
         "The Tokyo Metropolitan Government is the government of the Tokyo Metropolis.",
-        (Tag(Span(4, 29), "ORG"), Tag(Span(4, 5), "LOC"), Tag(Span(59, 5), "LOC")),
+        {Tag(Span(4, 29), "ORG"), Tag(Span(4, 5), "LOC"), Tag(Span(59, 5), "LOC")},
         torch.tensor(
             [
                 [
@@ -352,7 +347,7 @@ params = [
     ),
     (
         "John Doe is a multiple-use placeholder name.",
-        (Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER"), Tag(Span(0, 8), "PER")),
+        {Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER"), Tag(Span(0, 8), "PER")},
         torch.Tensor(
             [
                 [
@@ -596,18 +591,14 @@ def test_tag_bitmap_is_valid(
     label_set: LabelSet,
     tokenizer: TransformerTokenizer,
     text: str,
-    tags: tuple[Tag],
+    tags: set[Tag],
     expected: torch.Tensor,
 ) -> None:
-    char_based_tags = CharBasedTags(
-        tags,
-        text=text,
-    )
-
     text_batch = tokenizer((text,))
     tags_batch = TagsBatch(
-        (char_based_tags.convert_to_token_based(text_batch.tokenized_texts[0]),),
-        label_set,
+        tags_batch=(tags,),
+        alignments=text_batch.alignments,
+        label_set=label_set,
     )
 
     tag_bitmap = tags_batch.get_tag_bitmap()

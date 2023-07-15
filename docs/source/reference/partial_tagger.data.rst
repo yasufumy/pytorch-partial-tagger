@@ -11,14 +11,13 @@
     partial_tagger.data.batch.tag
     partial_tagger.data.batch.text
 
-
-.. autoclass:: TokenizedText
+.. autoclass:: Span
    :members:
 
-.. autoclass:: CharBasedTags
+.. autoclass:: Tag
    :members:
 
-.. autoclass:: TokenBasedTags
+.. autoclass:: Alignment
    :members:
 
 .. autoclass:: LabelSet

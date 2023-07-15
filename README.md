@@ -2,7 +2,9 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17GcpKmYn49bMM-mCZhiuRu8dkPZ0WXuD?usp=sharing)
 
- This is a library to build a CRF tagger for a partially annotated dataset in PyTorch. You can build your own NER tagger only from dictionary. The algorithm of this tagger is based on Effland and Collins. (2021).
+`pytorch-partial-tagger` is a Python library for building a sequence tagger, specifically for the common NLP task Named Entity Recognition, with a partially annotated dataset in PyTorch.
+You can build your own tagger using a distantly-supervised dataset obtained from unlabled text data and a dictionary that maps surface names to their entity type.
+The algorithm of this library is based on Effland and Collins. (2021).
 
 
 ## Usage
@@ -12,41 +14,33 @@ Import all dependencies first:
 ```py
 import torch
 
-from partial_tagger.data import CharBasedTags
 from partial_tagger.metric import Metric
 from partial_tagger.utils import create_tag, create_trainer
 ```
 
-Prepare your own datasets.
-Each item of dataset must have a string and tags. A string represents `text` below.
-Tags represent a collection of tags, where each tag has a start, a length, and a label, which are defined as `tags` below.
-A start represents a position in `text` where a tag starts.
-A length represents a distance in `text` between the beginning of a tag and the end of a tag.
-A label represents what you want to assign to a span of `text` defined by a start and a length.
+Prepare your own datasets. Each item of dataset must have a pair of a string and tags.
+A string represents text that you want to assign tags, which is defined as `text` below.
+Tags represent a hash set of a character-based tag, which has a start, a length, and a label, which are defined as `tags` below.
+A start represents a position in the text where a tag starts.
+A length represents a distance in the text between the beginning of a tag and the end of a tag.
+A label represents what you want to assign to a span of the text defined by a start and a length.
 
 ```py
-from partial_tagger.utils import create_tags, CharBasedTags
-
-
 text = "Tokyo is the capital of Japan."
-tags = CharBasedTags(
-    (
-        create_tag(start=0, length=5, label="LOC"),  # Tag for Tokyo
-        create_tag(start=24, length=5, label="LOC")  # Tag for Japan
-    ),
-    text
-)
+tags = {
+    create_tag(start=0, length=5, label="LOC"),  # Tag for Tokyo
+    create_tag(start=24, length=5, label="LOC")  # Tag for Japan
+}
+
 train_dataset = [(text, tags), ...]
 validation_dataset = [...]
 test_dataset = [...]
 ```
 
-Here, you would train your tagger and evaluate its performance.
-
-You could train your own tagger by initializing `Trainer` and passing datasets to it.
-After training, `trainer` gives you `Recognizer` object which predicts character-based tags from given texts.
-
-You could evaluate the performance of your tagger using `Metric` as below.
+Here, you will train your tagger and evaluate its performance.
+You will train it through an instance of `Trainer`, which you get by calling `create_trainer`.
+After a training, you will get an instance of `Recognizer` which predicts character-based tags from given texts.
+You will evaluate the performance of your tagger using an instance of `Metric` as follows.
 
 
 ```py
@@ -75,7 +69,7 @@ pip install pytorch-partial-tagger
 
 ## Documentation
 
-For details about the pytorch-partial-tagger API,  see the [documentation](https://pytorch-partial-tagger.readthedocs.io/en/latest/).
+For details about the `pytorch-partial-tagger` API,  see the [documentation](https://pytorch-partial-tagger.readthedocs.io/en/latest/).
 
 ## References
 

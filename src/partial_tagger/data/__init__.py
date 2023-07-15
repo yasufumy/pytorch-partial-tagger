@@ -1,8 +1,6 @@
 from partial_tagger.data.core import (  # NOQA
-    CharBasedTags,
+    Alignment,
     LabelSet,
     Span,
     Tag,
-    TokenBasedTags,
-    TokenizedText,
 )

@@ -35,6 +35,9 @@ def create_trainer(
     padding_index: int = -1,
     tokenizer_args: dict | None = None,
     encoder_type: str = "default",
+    target_entity_ratio: float = 0.15,
+    entity_ratio_margin: float = 0.05,
+    balancing_coefficient: int = 10,
 ) -> Trainer:
     """Creates an instance of Trainer."""
 
@@ -49,11 +52,14 @@ def create_trainer(
         AutoTokenizer.from_pretrained(model_name), tokenizer_args
     )
     return Trainer(
-        tokenizer,
-        encoder_factory,
-        batch_size,
-        num_epochs,
-        learning_rate,
-        gradient_clip_value,
-        padding_index,
+        tokenizer=tokenizer,
+        encoder_factory=encoder_factory,
+        batch_size=batch_size,
+        num_epochs=num_epochs,
+        learning_rate=learning_rate,
+        gradient_clip_value=gradient_clip_value,
+        padding_index=padding_index,
+        target_entity_ratio=target_entity_ratio,
+        entity_ratio_margin=entity_ratio_margin,
+        balancing_coefficient=balancing_coefficient,
     )

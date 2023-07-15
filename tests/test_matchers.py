@@ -2,7 +2,7 @@ import pytest
 import spacy
 from spacy.pipeline import EntityRuler
 
-from partial_tagger.data import CharBasedTags, Span, Tag
+from partial_tagger.data import Span, Tag
 from partial_tagger.matchers import SpacyMatcher
 
 
@@ -18,7 +18,7 @@ def matcher() -> SpacyMatcher:
 
 def test_matches_valid_tags(matcher: SpacyMatcher) -> None:
     text = "Tokyo is the capital of Japan."
-    expected = CharBasedTags((Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")), text)
+    expected = {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")}
 
     tags = matcher(text)
 
