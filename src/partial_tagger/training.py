@@ -179,7 +179,7 @@ class Trainer:
         )
         tagger.to(device)
 
-        collator = Collator(self.__tokenizer, label_set)
+        collator = Collator(self.__tokenizer)
 
         train_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
             train_dataset,  # type:ignore
@@ -219,7 +219,7 @@ class Trainer:
 
                 loss = compute_partially_supervised_loss(
                     log_potentials=log_potentials,
-                    tag_bitmap=tags_batch.get_tag_bitmap(),
+                    tag_bitmap=tags_batch.get_tag_bitmap(label_set=label_set),
                     mask=mask,
                     outside_index=label_set.get_outside_index(),
                     target_entity_ratio=self.__target_entity_ratio,

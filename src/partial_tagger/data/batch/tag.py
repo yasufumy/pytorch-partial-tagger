@@ -10,7 +10,6 @@ class TagsBatch:
 
     Args:
         tags_batch: A tuple of sets of character-based tags.
-        label_set: An instance of LabelSet to use for tag conversion.
         alignments: A tuple of instances of Alignment.
         device: A device on which to place tensors. Defaults to None.
     """
@@ -18,12 +17,10 @@ class TagsBatch:
     def __init__(
         self,
         tags_batch: tuple[set[Tag], ...],
-        label_set: LabelSet,
         alignments: tuple[Alignment, ...],
         device: torch.device | None = None,
     ):
         self.__tags_batch = tags_batch
-        self.__label_set = label_set
         self.__alignments = alignments
         self.__device = device
 
@@ -46,11 +43,12 @@ class TagsBatch:
         )
 
     def get_tag_indices(
-        self, padding_index: int = -1, unknown_index: int = -100
+        self, label_set: LabelSet, padding_index: int = -1, unknown_index: int = -100
     ) -> torch.Tensor:
         """Returns a tensor of tag indices for a batch.
 
         Args:
+            label_set: An instance of LabelSet.
             padding_index: An integer representing an index to pad a tensor.
                 Defaults to -1.
             unknown_index: An integer representing an index for an unknown tag.
@@ -59,8 +57,6 @@ class TagsBatch:
         Returns:
             A [batch_size, sequence_length] integer tensor representing tag indices.
         """
-        label_set = self.__label_set
-
         max_length = max(alignment.num_tokens for alignment in self.__alignments)
 
         tag_indices = []
@@ -78,17 +74,16 @@ class TagsBatch:
 
         return tensor
 
-    def get_tag_bitmap(
-        self,
-    ) -> torch.Tensor:
+    def get_tag_bitmap(self, label_set: LabelSet) -> torch.Tensor:
         """Returns a tensor of tag bitmap for a batch.
+
+        Args:
+            label_set: An instance of LabelSet.
 
         Returns:
             A [batch_size, sequence_length, num_tags] boolean tensor representing
             tag bitmap.
         """
-        label_set = self.__label_set
-
         max_length = max(alignment.num_tokens for alignment in self.__alignments)
 
         tag_bitmap = []
