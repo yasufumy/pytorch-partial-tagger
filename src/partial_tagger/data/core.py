@@ -117,14 +117,13 @@ class Alignment:
         return set(aligned_tags)
 
     def create_char_based_tags(
-        self, tag_indices: list[int], label_set: LabelSet, padding_index: int = -1
+        self, tag_indices: list[int], label_set: LabelSet
     ) -> set[Tag]:
         """Creates a set of character-based tags from given tag indices.
 
         Args:
             tag_indices: A list of integer, where each item represents a tag index.
             label_set: An instance of LabelSet.
-            padding_index: An integer for padded elements.
 
         Returns:
             A set of character-based tags.
