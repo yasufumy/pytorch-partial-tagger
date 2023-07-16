@@ -93,26 +93,21 @@ class Trainer:
     Args:
         tokenizer: An instance of BaseTokenizer.
         encoder_factory: An encoder factory for creating encoders.
-        batch_size: An integer representing a batch size for training. Defaults to 15.
-        num_epochs: An integer representing the number of epochs for training.
-            Defaults to 20.
-        learning_rate: A float representing a learning rate for optimization.
-            Defaults to 2e-5.
-        gradient_clip_value: A float representing a maximum gradient value
-            for clipping. Defaults to 5.0.
-        target_entity_ratio: A float representing a target entity ratio
-            for training. Defaults to 0.15.
-        entity_ratio_margin: A float representing a margin for the entity ratio.
-            Defaults to 0.05.
-        balancing_coefficient: An integer representing a balancing coefficient
-            for the loss function. Defaults to 10.
-        padding_index: An integer representing an index for padding. Defaults to -1.
     """
 
     def __init__(
         self,
         tokenizer: BaseTokenizer,
         encoder_factory: BaseEncoderFactory,
+    ):
+        self.__tokenizer = tokenizer
+        self.__encoder_factory = encoder_factory
+
+    def __call__(
+        self,
+        train_dataset: list[tuple[str, set[Tag]]],
+        validation_dataset: list[tuple[str, set[Tag]]],
+        device: torch.device,
         batch_size: int = 15,
         num_epochs: int = 20,
         learning_rate: float = 2e-5,
@@ -121,23 +116,6 @@ class Trainer:
         entity_ratio_margin: float = 0.05,
         balancing_coefficient: int = 10,
         padding_index: int = -1,
-    ):
-        self.__tokenizer = tokenizer
-        self.__encoder_factory = encoder_factory
-        self.__batch_size = batch_size
-        self.__num_epochs = num_epochs
-        self.__learning_rate = learning_rate
-        self.__gradient_clip_value = gradient_clip_value
-        self.__target_entity_ratio = target_entity_ratio
-        self.__entity_ratio_margin = entity_ratio_margin
-        self.__balancing_coefficient = balancing_coefficient
-        self.__padding_index = padding_index
-
-    def __call__(
-        self,
-        train_dataset: list[tuple[str, set[Tag]]],
-        validation_dataset: list[tuple[str, set[Tag]]],
-        device: torch.device,
         logger: Logger | None = None,
     ) -> Recognizer:
         """Trains an instance of SequenceTagger.
@@ -146,6 +124,21 @@ class Trainer:
             train_dataset: A list of training data tuples containing text and tags.
             validation_dataset: A list of validation data tuples
                 containing text and tags.
+            batch_size: An integer representing a batch size for training.
+                Defaults to 15.
+            num_epochs: An integer representing the number of epochs for training.
+                Defaults to 20.
+            learning_rate: A float representing a learning rate for optimization.
+                Defaults to 2e-5.
+            gradient_clip_value: A float representing a maximum gradient value
+                for clipping. Defaults to 5.0.
+            target_entity_ratio: A float representing a target entity ratio
+                for training. Defaults to 0.15.
+            entity_ratio_margin: A float representing a margin for the entity ratio.
+                Defaults to 0.05.
+            balancing_coefficient: An integer representing a balancing coefficient
+                for the loss function. Defaults to 10.
+            padding_index: An integer representing an index for padding. Defaults to -1.
             device: A device to be used for training.
             logger: A logger for logging training progress. Defaults to None.
 
@@ -169,7 +162,7 @@ class Trainer:
         tagger = SequenceTagger(
             self.__encoder_factory.create(label_set),
             ViterbiDecoder(
-                self.__padding_index,
+                padding_index,
                 Constrainer(
                     label_set.get_start_states(),
                     label_set.get_end_states(),
@@ -179,31 +172,31 @@ class Trainer:
         )
         tagger.to(device)
 
-        collator = Collator(self.__tokenizer, label_set)
+        collator = Collator(self.__tokenizer)
 
         train_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
             train_dataset,  # type:ignore
             collate_fn=collator,
-            batch_size=self.__batch_size,
+            batch_size=batch_size,
         )
         validation_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
             validation_dataset,  # type:ignore
             collate_fn=collator,
-            batch_size=self.__batch_size,
+            batch_size=batch_size,
             shuffle=False,
         )
 
         optimizer = torch.optim.Adam(
-            tagger.parameters(), lr=self.__learning_rate, weight_decay=0.0
+            tagger.parameters(), lr=learning_rate, weight_decay=0.0
         )
         schedular = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
-            SlantedTriangular(len(train_dataloader) * self.__num_epochs),
+            SlantedTriangular(len(train_dataloader) * num_epochs),
         )
         best_f1_score = float("-inf")
         best_tagger_state = io.BytesIO()
 
-        for epoch in range(1, self.__num_epochs + 1):
+        for epoch in range(1, num_epochs + 1):
             epoch_loss = 0.0
             tagger.train()
 
@@ -219,17 +212,17 @@ class Trainer:
 
                 loss = compute_partially_supervised_loss(
                     log_potentials=log_potentials,
-                    tag_bitmap=tags_batch.get_tag_bitmap(),
+                    tag_bitmap=tags_batch.get_tag_bitmap(label_set=label_set),
                     mask=mask,
                     outside_index=label_set.get_outside_index(),
-                    target_entity_ratio=self.__target_entity_ratio,
-                    entity_ratio_margin=self.__entity_ratio_margin,
-                    balancing_coefficient=self.__balancing_coefficient,
+                    target_entity_ratio=target_entity_ratio,
+                    entity_ratio_margin=entity_ratio_margin,
+                    balancing_coefficient=balancing_coefficient,
                 )
                 loss.backward()
 
                 torch.nn.utils.clip_grad_value_(
-                    tagger.parameters(), clip_value=self.__gradient_clip_value
+                    tagger.parameters(), clip_value=gradient_clip_value
                 )
 
                 optimizer.step()

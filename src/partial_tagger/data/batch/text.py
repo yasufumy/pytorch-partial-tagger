@@ -86,9 +86,7 @@ class TextBatch:
         for alignment, indices in zip(self.alignments, tag_indices_unpadded):
             tags_batch.append(
                 alignment.create_char_based_tags(
-                    tag_indices=indices,
-                    label_set=label_set,
-                    padding_index=padding_index,
+                    tag_indices=indices, label_set=label_set
                 )
             )
 

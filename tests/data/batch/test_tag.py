@@ -42,9 +42,8 @@ def test_tag_indices_are_valid(
     tags_batch = TagsBatch(
         tags_batch=(char_based_tags,),
         alignments=text_batch.alignments,
-        label_set=label_set,
     )
-    tag_indices = tags_batch.get_tag_indices()
+    tag_indices = tags_batch.get_tag_indices(label_set=label_set)
 
     assert torch.equal(tag_indices, expected)
 
@@ -598,9 +597,8 @@ def test_tag_bitmap_is_valid(
     tags_batch = TagsBatch(
         tags_batch=(tags,),
         alignments=text_batch.alignments,
-        label_set=label_set,
     )
 
-    tag_bitmap = tags_batch.get_tag_bitmap()
+    tag_bitmap = tags_batch.get_tag_bitmap(label_set=label_set)
 
     assert torch.equal(tag_bitmap, expected)

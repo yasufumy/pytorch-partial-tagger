@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from partial_tagger.data.batch.tag import TagsBatch
 from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
-from partial_tagger.data.core import LabelSet, Tag
+from partial_tagger.data.core import Tag
 
 
 class Collator:
-    def __init__(self, tokenizer: BaseTokenizer, label_set: LabelSet):
+    def __init__(self, tokenizer: BaseTokenizer):
         self.__tokenizer = tokenizer
-        self.__label_set = label_set
 
     def __call__(
         self, examples: list[tuple[str, set[Tag]]]
@@ -19,7 +18,6 @@ class Collator:
 
         tags_batch = TagsBatch(
             tags_batch=tags_batch,
-            label_set=self.__label_set,
             alignments=text_batch.alignments,
         )
         return text_batch, tags_batch

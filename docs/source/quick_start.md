@@ -24,7 +24,6 @@ from contextlib import contextmanager
 import numpy as np
 import torch
 
-from partial_tagger.data import CharBasedTags
 from partial_tagger.metric import Metric
 from partial_tagger.utils import create_tag,  create_trainer
 ```
@@ -94,16 +93,16 @@ def load_dataset(path: str):
                 mapping[i] = now
                 now += len(token) + 1  # Add one for a space
 
-            tags = tuple(
+            tags = {
                 create_tag(
                     mapping[annotation["start"]],
                     len(annotation["mention"]),
                     annotation["type"],
                 )
                 for annotation in data["gold_annotations"]
-            )
+            }
 
-            dataset.append((text, CharBasedTags(tags, text)))
+            dataset.append((text, tags))
 
     return dataset
 
