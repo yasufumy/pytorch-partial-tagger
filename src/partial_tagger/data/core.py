@@ -24,6 +24,28 @@ class Tag:
     def length(self) -> int:
         return self.span.length
 
+    @classmethod
+    def create(cls, start: int, end: int, label: str) -> Tag:
+        """Creates an instance of Tag.
+
+        Args:
+            start: An integer representing a position in text where a tag starts.
+            end: An integer representing a position in text where a tag ends.
+                Note that an end is expected to be exclusive.
+            label: A string representing what you want to assign to a span in a text.
+
+        Returns:
+            An instance of Tag.
+        """
+        if start < 0:
+            raise ValueError(f"start must be zero or positive: {start}")
+
+        if start >= end:
+            raise ValueError(f"end must be greater than start: {start} >= {end}")
+
+        length = end - start
+        return cls(Span(start, length), label)
+
 
 class Alignment:
     """An alignment class responsible for manipulating character-based tags based on

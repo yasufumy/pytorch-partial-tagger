@@ -8,7 +8,6 @@ from partial_tagger.data import (
     Span,
     Tag,
 )
-from partial_tagger.utils import create_tag
 
 
 @pytest.fixture
@@ -18,7 +17,7 @@ def text() -> str:
 
 @pytest.fixture
 def char_based_tags() -> set[Tag]:
-    return {create_tag(0, 5, "LOC"), create_tag(24, 5, "LOC")}
+    return {Tag.create(0, 5, "LOC"), Tag.create(24, 29, "LOC")}
 
 
 @pytest.fixture
@@ -170,7 +169,7 @@ def test_converts_token_span_to_char_span(alignment: Alignment) -> None:
 def test_ignore_tags_define_in_truncated_text(
     truncated_alignment: Alignment, char_based_tags: set[Tag]
 ) -> None:
-    expected = {create_tag(1, 2, "LOC")}
+    expected = {Tag.create(1, 3, "LOC")}
 
     assert truncated_alignment.convert_to_token_based(char_based_tags) == expected
 
