@@ -30,7 +30,7 @@ A label represents what you want to assign to a span of the text defined by a st
 text = "Tokyo is the capital of Japan."
 tags = {
     Tag.create(start=0, end=5, label="LOC"),  # Tag for Tokyo
-    Tag.create(start=24, length=29, label="LOC")  # Tag for Japan
+    Tag.create(start=24, end=29, label="LOC")  # Tag for Japan
 }
 
 train_dataset = [(text, tags), ...]
