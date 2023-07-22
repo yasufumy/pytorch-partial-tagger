@@ -14,8 +14,9 @@ Import all dependencies first:
 ```py
 import torch
 
+from partial_tagger.utils import Tag
 from partial_tagger.metric import Metric
-from partial_tagger.utils import create_tag, create_trainer
+from partial_tagger.utils import create_trainer
 ```
 
 Prepare your own datasets. Each item of dataset must have a pair of a string and tags.
@@ -28,8 +29,8 @@ A label represents what you want to assign to a span of the text defined by a st
 ```py
 text = "Tokyo is the capital of Japan."
 tags = {
-    create_tag(start=0, length=5, label="LOC"),  # Tag for Tokyo
-    create_tag(start=24, length=5, label="LOC")  # Tag for Japan
+    Tag.create(start=0, end=5, label="LOC"),  # Tag for Tokyo
+    Tag.create(start=24, end=29, label="LOC")  # Tag for Japan
 }
 
 train_dataset = [(text, tags), ...]

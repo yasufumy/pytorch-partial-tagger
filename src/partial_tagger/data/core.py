@@ -10,6 +10,13 @@ class Span:
     start: int
     length: int
 
+    def __post_init__(self) -> None:
+        if self.start < 0:
+            raise ValueError(f"start must be zero or positive: {self.start}")
+
+        if self.length <= 0:
+            raise ValueError(f"length must be positive: {self.length}")
+
 
 @dataclass(frozen=True)
 class Tag:
@@ -23,6 +30,28 @@ class Tag:
     @property
     def length(self) -> int:
         return self.span.length
+
+    @classmethod
+    def create(cls, start: int, end: int, label: str) -> Tag:
+        """Creates an instance of Tag.
+
+        Args:
+            start: An integer representing a position in text where a tag starts.
+            end: An integer representing a position in text where a tag ends.
+                Note that an end is expected to be exclusive.
+            label: A string representing what you want to assign to a span in a text.
+
+        Returns:
+            An instance of Tag.
+        """
+        if start < 0:
+            raise ValueError(f"start must be zero or positive: {start}")
+
+        if start >= end:
+            raise ValueError(f"end must be greater than start: {start} >= {end}")
+
+        length = end - start
+        return cls(Span(start, length), label)
 
 
 class Alignment:
@@ -44,6 +73,25 @@ class Alignment:
     def __init__(
         self, char_spans: tuple[Span | None, ...], token_indices: tuple[int, ...]
     ):
+        num_tokens = len(char_spans)
+        if not all(index == -1 or 0 <= index < num_tokens for index in token_indices):
+            raise ValueError(
+                "Each item in token_indices must be -1 or"
+                f" in between 0 and {num_tokens - 1}: {token_indices}"
+            )
+
+        char_length = len(token_indices)
+        if not all(
+            0 <= span.start < char_length  # check if start is valid
+            and 0 <= span.start + span.length - 1 < char_length  # check if end is valid
+            for span in char_spans
+            if span is not None
+        ):
+            raise ValueError(
+                "Each span in char_spans must be None or"
+                f" in between 0 and {char_length - 1}: {char_spans}"
+            )
+
         self.__char_spans = char_spans
         self.__token_indices = token_indices
 
@@ -85,6 +133,19 @@ class Alignment:
         Returns:
             A set of character-based tags.
         """
+        for tag in tags:
+            if tag.start < 0 or tag.start >= self.num_tokens:
+                raise ValueError(
+                    "An invalid tag is found. start must be"
+                    f" in between 0 and {self.num_tokens - 1}: {tag.start}"
+                )
+            end = tag.start + tag.length
+            if end < 0 or end > self.num_tokens:
+                raise ValueError(
+                    "An invalid tag is found. length must be"
+                    f" in between 1 and {self.num_tokens}: {tag.length}"
+                )
+
         aligned_tags = []
         for tag in tags:
             char_span = self.convert_to_char_span(tag.span)
@@ -104,6 +165,19 @@ class Alignment:
         Returns:
             A set of token-based tags.
         """
+        for tag in tags:
+            if tag.start < 0 or tag.start >= self.char_length:
+                raise ValueError(
+                    "An invalid tag is found. start must be"
+                    f" in between 0 and {self.char_length - 1}: {tag.start}"
+                )
+            end = tag.start + tag.length
+            if end < 0 or end > self.char_length:
+                raise ValueError(
+                    "An invalid tag is found. length must be"
+                    f" in between 1 and {self.char_length}: {tag.length}"
+                )
+
         aligned_tags = []
         for tag in tags:
             start = self.__token_indices[tag.start]
@@ -129,7 +203,16 @@ class Alignment:
             A set of character-based tags.
         """
         if self.num_tokens != len(tag_indices):
-            raise ValueError("The number of tokens in text mismatch.")
+            raise ValueError(
+                f"The length of tag_indices ({len(tag_indices)}) must be equal"
+                f" to the number of tokens ({self.num_tokens})"
+            )
+
+        if not all(0 <= index < label_set.get_tag_size() for index in tag_indices):
+            raise ValueError(
+                "Each index in tag_indices must be in between"
+                f" 0 and {label_set.get_tag_size()}"
+            )
 
         tags = []
         stack: list[str] = []

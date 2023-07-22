@@ -20,6 +20,22 @@ class TagsBatch:
         alignments: tuple[Alignment, ...],
         device: torch.device | None = None,
     ):
+        if len(tags_batch) != len(alignments):
+            raise ValueError(
+                "The length of tags_batch and alignments must be"
+                f" the same: {len(tags_batch)} != {len(alignments)}"
+            )
+
+        if len(tags_batch) <= 0:
+            raise ValueError(
+                "The length of tags_batch must be greater than 1:" f" {len(tags_batch)}"
+            )
+
+        if len(alignments) <= 0:
+            raise ValueError(
+                "The length of alignments must be greater than 1:" f" {len(tags_batch)}"
+            )
+
         self.__tags_batch = tags_batch
         self.__alignments = alignments
         self.__device = device
