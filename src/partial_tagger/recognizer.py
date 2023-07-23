@@ -5,8 +5,8 @@ from collections.abc import Sequence
 import torch
 from torch.utils.data import DataLoader
 
-from partial_tagger.data import LabelSet, Tag
-from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.data import Alignments, LabelSet, Tag
+from partial_tagger.data.collators import BaseCollator, Batch
 from partial_tagger.tagger import SequenceTagger
 
 
@@ -16,18 +16,19 @@ class Recognizer:
 
     Args:
         tagger: An instance of SequenceTagger representing the trained tagger.
-        tokenizer: An instance of BaseTokenizer for tokenizing the input texts.
+        collator: Any instance of the classes that inherit BaseCollator for
+            encoding given texts into tensors.
         label_set: An instance of LabelSet.
     """
 
     def __init__(
         self,
         tagger: SequenceTagger,
-        tokenizer: BaseTokenizer,
+        collator: BaseCollator,
         label_set: LabelSet,
     ):
         self.__tagger = tagger
-        self.__tokenizer = tokenizer
+        self.__collator = collator
         self.__label_set = label_set
 
     def __call__(
@@ -45,9 +46,9 @@ class Recognizer:
             for each input text.
 
         """
-        dataloader: Sequence[TextBatch] = DataLoader(
+        dataloader: Sequence[tuple[Batch, Alignments]] = DataLoader(
             texts,  # type: ignore
-            collate_fn=self.__tokenizer,
+            collate_fn=self.__collator,
             batch_size=batch_size,
             shuffle=False,
         )
@@ -55,14 +56,14 @@ class Recognizer:
         tagger = self.__tagger.eval().to(device)
 
         predictions = []
-        for text_batch in dataloader:
-            text_batch.to(device)
+        for text_batch, alignments in dataloader:
+            text_batch = text_batch.to(device)
 
             tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
 
             predictions.extend(
-                text_batch.create_char_based_tags(
-                    tag_indices=tag_indices,
+                alignments.create_char_based_tags(
+                    tag_indices=tag_indices.tolist(),
                     label_set=self.__label_set,
                     padding_index=tagger.padding_index,
                 )

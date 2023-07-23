@@ -324,6 +324,117 @@ class Alignment:
         return tag_bitmap
 
 
+@dataclass(frozen=True)
+class Alignments:
+    alignments: tuple[Alignment, ...]
+
+    def __len__(self) -> int:
+        return len(self.alignments)
+
+    def get_tag_indices(
+        self,
+        tags_batch: tuple[set[Tag], ...],
+        label_set: LabelSet,
+        padding_index: int = -1,
+        unknown_index: int = -100,
+    ) -> list[list[int]]:
+        """Returns a tensor of tag indices for a batch.
+
+        Args:
+            label_set: An instance of LabelSet.
+            padding_index: An integer representing an index to pad a tensor.
+                Defaults to -1.
+            unknown_index: An integer representing an index for an unknown tag.
+                Defaults to -100.
+
+        Returns:
+            A [batch_size, sequence_length] integer tensor representing tag indices.
+        """
+        max_length = max(alignment.num_tokens for alignment in self.alignments)
+
+        tag_indices = []
+
+        for tags, alignment in zip(tags_batch, self.alignments):
+            indices = alignment.create_tag_indices(
+                tags=tags, label_set=label_set, unknown_index=unknown_index
+            )
+            tag_indices.append(indices + [padding_index] * (max_length - len(indices)))
+
+        return tag_indices
+
+    def get_tag_bitmap(
+        self, tags_batch: tuple[set[Tag], ...], label_set: LabelSet
+    ) -> list[list[list[bool]]]:
+        """Returns a tensor of tag bitmap for a batch.
+
+        Args:
+            label_set: An instance of LabelSet.
+
+        Returns:
+            A [batch_size, sequence_length, num_tags] boolean tensor representing
+            tag bitmap.
+        """
+        max_length = max(alignment.num_tokens for alignment in self.alignments)
+
+        tag_bitmap = []
+
+        for tags, alignment in zip(tags_batch, self.alignments):
+            bitmap = alignment.create_tag_bitmap(tags=tags, label_set=label_set)
+            tag_bitmap.append(
+                bitmap
+                + [
+                    [False] * label_set.get_tag_size()
+                    for _ in range(max_length - len(bitmap))
+                ]
+            )
+
+        return tag_bitmap
+
+    def create_char_based_tags(
+        self, tag_indices: list[list[int]], label_set: LabelSet, padding_index: int = -1
+    ) -> tuple[set[Tag], ...]:
+        tag_indices = [[i for i in x if i != padding_index] for x in tag_indices]
+
+        if len(tag_indices) != len(self.alignments):
+            raise ValueError(
+                f"Batch size mismatch: {len(tag_indices)} != {len(self.alignments)}"
+            )
+
+        tags_batch = []
+
+        for alignment, indices in zip(self.alignments, tag_indices):
+            tags_batch.append(
+                alignment.create_char_based_tags(
+                    tag_indices=indices, label_set=label_set
+                )
+            )
+
+        return tuple(tags_batch)
+
+    @classmethod
+    def from_offset_mapping(
+        cls, offset_mapping: list[list[tuple[int, int]]], char_lengths: tuple[int, ...]
+    ) -> Alignments:
+        alignments = []
+        for mapping, char_length in zip(offset_mapping, char_lengths):
+            char_spans = tuple(
+                Span(start, end - start) if start != end else None
+                for start, end in mapping
+            )
+            token_indices = [-1] * char_length
+            for token_index, char_span in enumerate(char_spans):
+                if char_span is None:
+                    continue
+                start = char_span.start
+                end = char_span.start + char_span.length
+                token_indices[start:end] = [token_index] * char_span.length
+
+            alignments.append(
+                Alignment(char_spans=char_spans, token_indices=tuple(token_indices))
+            )
+        return cls(alignments=tuple(alignments))
+
+
 class Status(Enum):
     START = auto()
     INSIDE = auto()
