@@ -56,10 +56,10 @@ class Recognizer:
         tagger = self.__tagger.eval().to(device)
 
         predictions = []
-        for text_batch, alignments in dataloader:
-            text_batch = text_batch.to(device)
+        for batch, alignments in dataloader:
+            batch = batch.to(device)
 
-            tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
+            tag_indices = tagger.predict(batch.tagger_inputs, batch.mask)
 
             predictions.extend(
                 alignments.create_char_based_tags(
