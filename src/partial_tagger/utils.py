@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from transformers import AutoTokenizer
 
-from partial_tagger.data.batch.text import TransformerTokenizer
+from partial_tagger.data.collators import TransformerCollator
 from partial_tagger.data.core import Span, Tag
 from partial_tagger.encoders.transformer import (
     TransformerModelEncoderFactory,
@@ -40,7 +40,7 @@ def create_trainer(
     else:
         raise ValueError(f"{encoder_type} is not supported.")
 
-    tokenizer = TransformerTokenizer(
+    collator = TransformerCollator(
         AutoTokenizer.from_pretrained(model_name), tokenizer_args
     )
-    return Trainer(tokenizer=tokenizer, encoder_factory=encoder_factory)
+    return Trainer(collator=collator, encoder_factory=encoder_factory)

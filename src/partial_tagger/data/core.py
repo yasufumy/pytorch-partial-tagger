@@ -324,6 +324,151 @@ class Alignment:
         return tag_bitmap
 
 
+@dataclass(frozen=True)
+class Alignments:
+    """A batched version of the Alignment class.
+
+    Args:
+        alignments: A tuple of an instance of Alignment.
+
+    Attributes:
+        alignments: A tuple of an instance of Alignment.
+    """
+
+    alignments: tuple[Alignment, ...]
+
+    def __len__(self) -> int:
+        return len(self.alignments)
+
+    def get_tag_indices(
+        self,
+        tags_batch: tuple[set[Tag], ...],
+        label_set: LabelSet,
+        padding_index: int = -1,
+        unknown_index: int = -100,
+    ) -> list[list[int]]:
+        """Encodes a batch of character-based tags into tag indices.
+
+        Args:
+            tags_batch: A tuple of character-based tags.
+            label_set: An instance of LabelSet.
+            padding_index: An integer representing an index to pad a tensor.
+                Defaults to -1.
+            unknown_index: An integer representing an index for an unknown tag.
+                Defaults to -100.
+
+        Returns:
+            A 2D integer list of tag indices whose size is
+            [batch_size, sequence_length].
+        """
+        max_length = max(alignment.num_tokens for alignment in self.alignments)
+
+        tag_indices = []
+
+        for tags, alignment in zip(tags_batch, self.alignments):
+            indices = alignment.create_tag_indices(
+                tags=tags, label_set=label_set, unknown_index=unknown_index
+            )
+            tag_indices.append(indices + [padding_index] * (max_length - len(indices)))
+
+        return tag_indices
+
+    def get_tag_bitmap(
+        self, tags_batch: tuple[set[Tag], ...], label_set: LabelSet
+    ) -> list[list[list[bool]]]:
+        """Encodes a batch of character-based tags into tag bitmap.
+
+        Args:
+            tags_batch: A tuple of character-based tags.
+            label_set: An instance of LabelSet.
+
+        Returns:
+            A 3D boolean list of tag bitmap whose size is
+            [batch_size, sequence_length, num_tags].
+        """
+        max_length = max(alignment.num_tokens for alignment in self.alignments)
+
+        tag_bitmap = []
+
+        for tags, alignment in zip(tags_batch, self.alignments):
+            bitmap = alignment.create_tag_bitmap(tags=tags, label_set=label_set)
+            tag_bitmap.append(
+                bitmap
+                + [
+                    [False] * label_set.get_tag_size()
+                    for _ in range(max_length - len(bitmap))
+                ]
+            )
+
+        return tag_bitmap
+
+    def create_char_based_tags(
+        self, tag_indices: list[list[int]], label_set: LabelSet, padding_index: int = -1
+    ) -> tuple[set[Tag], ...]:
+        """Creates character-based tags from given tag indices
+        based on alignment information.
+
+        Args:
+            tag_indices: A [batch_size, sequence_length] integer tensor of tag indices.
+            label_set: An instance of LabelSet to use for tag conversion.
+            padding_index: An integer representing a padding index. Defaults to -1.
+
+        Returns:
+            A tuple where each item is a set of character-based tags.
+        """
+        tag_indices = [[i for i in x if i != padding_index] for x in tag_indices]
+
+        if len(tag_indices) != len(self.alignments):
+            raise ValueError(
+                f"Batch size mismatch: {len(tag_indices)} != {len(self.alignments)}"
+            )
+
+        tags_batch = []
+
+        for alignment, indices in zip(self.alignments, tag_indices):
+            tags_batch.append(
+                alignment.create_char_based_tags(
+                    tag_indices=indices, label_set=label_set
+                )
+            )
+
+        return tuple(tags_batch)
+
+    @classmethod
+    def from_offset_mapping(
+        cls, offset_mapping: list[list[tuple[int, int]]], char_lengths: tuple[int, ...]
+    ) -> Alignments:
+        """Creates an instance of Alignments from Hugging Face offset_mapping.
+
+        Args:
+            offset_mapping: A list of list of a pair of integers where each pair
+                represents a character span that corresponds to a token.
+            char_lengths: A tuple of integers where each item represents the length
+            of the original text before tokenization.
+
+        Returns:
+            An instance of Alignments.
+        """
+        alignments = []
+        for mapping, char_length in zip(offset_mapping, char_lengths):
+            char_spans = tuple(
+                Span(start, end - start) if start != end else None
+                for start, end in mapping
+            )
+            token_indices = [-1] * char_length
+            for token_index, char_span in enumerate(char_spans):
+                if char_span is None:
+                    continue
+                start = char_span.start
+                end = char_span.start + char_span.length
+                token_indices[start:end] = [token_index] * char_span.length
+
+            alignments.append(
+                Alignment(char_spans=char_spans, token_indices=tuple(token_indices))
+            )
+        return cls(alignments=tuple(alignments))
+
+
 class Status(Enum):
     START = auto()
     INSIDE = auto()

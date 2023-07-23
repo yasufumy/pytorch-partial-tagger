@@ -9,10 +9,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from partial_tagger.crf import functional as F
-from partial_tagger.data import LabelSet, Tag
-from partial_tagger.data.batch import Collator
-from partial_tagger.data.batch.tag import TagsBatch
-from partial_tagger.data.batch.text import BaseTokenizer, TextBatch
+from partial_tagger.data import Alignments, LabelSet, Tag
+from partial_tagger.data.collators import BaseCollator, Batch, TrainingCollator
 from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
 from partial_tagger.encoders import BaseEncoderFactory
 from partial_tagger.metric import Metric
@@ -91,16 +89,16 @@ class Trainer:
     """A trainer for fitting the parameters of a tagger based on a given dataset.
 
     Args:
-        tokenizer: An instance of BaseTokenizer.
+        collator: Any instance of the classes that inherit BaseCollator.
         encoder_factory: An encoder factory for creating encoders.
     """
 
     def __init__(
         self,
-        tokenizer: BaseTokenizer,
+        collator: BaseCollator,
         encoder_factory: BaseEncoderFactory,
     ):
-        self.__tokenizer = tokenizer
+        self.__collator = collator
         self.__encoder_factory = encoder_factory
 
     def __call__(
@@ -172,14 +170,18 @@ class Trainer:
         )
         tagger.to(device)
 
-        collator = Collator(self.__tokenizer)
+        collator = TrainingCollator(self.__collator)
 
-        train_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
+        train_dataloader: Sequence[
+            tuple[Batch, Alignments, tuple[set[Tag], ...]]
+        ] = DataLoader(
             train_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
         )
-        validation_dataloader: Sequence[tuple[TextBatch, TagsBatch]] = DataLoader(
+        validation_dataloader: Sequence[
+            tuple[Batch, Alignments, tuple[set[Tag], ...]]
+        ] = DataLoader(
             validation_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
@@ -200,20 +202,22 @@ class Trainer:
             epoch_loss = 0.0
             tagger.train()
 
-            for text_batch, tags_batch in train_dataloader:
-                text_batch.to(device)
-                tags_batch.to(device)
+            for batch, alignments, ground_truths in train_dataloader:
+                batch = batch.to(device)
 
                 optimizer.zero_grad()
 
-                mask = text_batch.mask
-
-                log_potentials, _ = tagger(text_batch.tagger_inputs, mask)
+                log_potentials, _ = tagger(batch.tagger_inputs, batch.mask)
 
                 loss = compute_partially_supervised_loss(
                     log_potentials=log_potentials,
-                    tag_bitmap=tags_batch.get_tag_bitmap(label_set=label_set),
-                    mask=mask,
+                    tag_bitmap=torch.tensor(
+                        alignments.get_tag_bitmap(
+                            tags_batch=ground_truths, label_set=label_set
+                        ),
+                        device=device,
+                    ),
+                    mask=batch.mask,
                     outside_index=label_set.get_outside_index(),
                     target_entity_ratio=target_entity_ratio,
                     entity_ratio_margin=entity_ratio_margin,
@@ -228,23 +232,22 @@ class Trainer:
                 optimizer.step()
                 schedular.step()
 
-                epoch_loss += loss.item() * text_batch.size
+                epoch_loss += loss.item() * len(alignments)
 
             tagger.eval()
             metric = Metric()
-            for text_batch, tags_batch in validation_dataloader:
-                text_batch.to(device)
-                tags_batch.to(device)
+            for batch, alignments, ground_truths in validation_dataloader:
+                batch = batch.to(device)
 
-                tag_indices = tagger.predict(text_batch.tagger_inputs, text_batch.mask)
+                tag_indices = tagger.predict(batch.tagger_inputs, batch.mask)
 
-                predictions = text_batch.create_char_based_tags(
-                    tag_indices=tag_indices,
+                predictions = alignments.create_char_based_tags(
+                    tag_indices=tag_indices.tolist(),
                     label_set=label_set,
                     padding_index=tagger.padding_index,
                 )
 
-                metric(predictions, tags_batch.char_based)
+                metric(predictions, ground_truths)
 
             scores = metric.get_scores()
 
@@ -265,6 +268,4 @@ class Trainer:
         best_tagger_state.seek(0)
         tagger.load_state_dict(torch.load(best_tagger_state))
 
-        return Recognizer(
-            tagger=tagger, tokenizer=self.__tokenizer, label_set=label_set
-        )
+        return Recognizer(tagger=tagger, collator=self.__collator, label_set=label_set)
