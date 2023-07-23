@@ -5,12 +5,6 @@
 
 .. automodule:: partial_tagger.data
 
-.. toctree::
-    :titlesonly:
-
-    partial_tagger.data.batch.tag
-    partial_tagger.data.batch.text
-
 .. autoclass:: Span
    :members:
 
@@ -18,6 +12,9 @@
    :members:
 
 .. autoclass:: Alignment
+   :members:
+
+.. autoclass:: Alignments
    :members:
 
 .. autoclass:: LabelSet
