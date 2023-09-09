@@ -4,13 +4,13 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from partial_tagger.data import Alignments
+from partial_tagger.data.core import Alignments
 
 if TYPE_CHECKING:
     import torch
-    from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
+    from transformers import PreTrainedTokenizerFast
 
-    from partial_tagger.data import Tag
+    from partial_tagger.data.core import Tag
 
 
 @dataclass

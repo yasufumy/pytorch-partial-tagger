@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 
-from partial_tagger.data import Span, Tag
+from partial_tagger.data.core import Span, Tag
 from partial_tagger.utils import create_trainer
 
 

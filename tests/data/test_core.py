@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from partial_tagger.data import Alignment, LabelSet, Span, Tag
+from partial_tagger.data.core import Alignment, LabelSet, Span, Tag
 
 
 @pytest.fixture()

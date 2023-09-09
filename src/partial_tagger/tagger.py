@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
+import torch
 from torch.nn import Module
 
 from partial_tagger.crf.nn import CRF
 
 if TYPE_CHECKING:
-    import torch
-
-    from partial_tagger.decoders import ViterbiDecoder
-    from partial_tagger.encoders import BaseEncoder
+    from partial_tagger.decoders.viterbi import ViterbiDecoder
+    from partial_tagger.encoders.base import BaseEncoder
 
 
 class SequenceTagger(Module):
@@ -64,7 +63,7 @@ class SequenceTagger(Module):
         Returns:
              A [batch_size, sequence_length] integer tensor representing tag sequence.
         """
-        return self(inputs, mask)[1]
+        return cast(torch.Tensor, self(inputs, mask)[1])
 
     @property
     def padding_index(self) -> int:

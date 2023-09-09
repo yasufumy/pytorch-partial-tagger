@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
+import torch
 from torch import nn
 from transformers import AutoModel, AutoModelForTokenClassification
 
 from partial_tagger.encoders.base import BaseEncoder, BaseEncoderFactory
 
 if TYPE_CHECKING:
-    import torch
     from transformers import PreTrainedModel
 
     from partial_tagger.data.core import LabelSet
@@ -56,7 +56,7 @@ class TransformerModelEncoder(BaseEncoder):
             A [batch_size, sequence_length, hidden_size] float tensor.
         """
         embeddings = self.model(**inputs).last_hidden_state
-        return self.linear(self.dropout(embeddings))
+        return cast(torch.Tensor, self.linear(self.dropout(embeddings)))
 
     def get_hidden_size(self) -> int:
         """Returns the dimension size of the output tensor.
@@ -122,7 +122,7 @@ class TransformerModelWithHeadEncoder(BaseEncoder):
         Returns:
             A [batch_size, sequence_length, hidden_size] float tensor.
         """
-        return self.model(**inputs).logits
+        return cast(torch.Tensor, self.model(**inputs).logits)
 
     def get_hidden_size(self) -> int:
         """Returns the dimension size of the output tensor.
@@ -130,7 +130,7 @@ class TransformerModelWithHeadEncoder(BaseEncoder):
         Returns:
             The dimension size of the output tensor.
         """
-        return self.model.num_labels
+        return cast(int, self.model.num_labels)
 
 
 class TransformerModelWithHeadEncoderFactory(BaseEncoderFactory):

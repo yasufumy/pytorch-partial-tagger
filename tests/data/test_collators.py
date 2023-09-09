@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from transformers import AutoTokenizer
 
-from partial_tagger.data import LabelSet, Span, Tag
 from partial_tagger.data.collators import TransformerCollator
+from partial_tagger.data.core import LabelSet, Span, Tag
 
 
 @pytest.fixture()

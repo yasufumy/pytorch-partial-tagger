@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 
     import torch
 
-    from partial_tagger.data import Alignments, LabelSet, Tag
     from partial_tagger.data.collators import BaseCollator, Batch
+    from partial_tagger.data.core import Alignments, LabelSet, Tag
     from partial_tagger.tagger import SequenceTagger
 
 
@@ -52,14 +52,14 @@ class Recognizer:
         """
         dataloader: Sequence[tuple[Batch, Alignments]] = DataLoader(
             texts,  # type: ignore
-            collate_fn=self.__collator,
+            collate_fn=self.__collator,  # type:ignore
             batch_size=batch_size,
             shuffle=False,
         )
 
         tagger = self.__tagger.eval().to(device)
 
-        predictions = []
+        predictions: list[set[Tag]] = []
         for batch, alignments in dataloader:
             batch = batch.to(device)
 

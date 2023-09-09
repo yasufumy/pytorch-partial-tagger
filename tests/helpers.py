@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from itertools import product
-from typing import Generator, Tuple
+from typing import Any, Generator
 
 import torch
 
@@ -9,7 +11,7 @@ from partial_tagger.crf import functional as F
 
 def iterate_possible_tag_indices(
     sequence_length: int, num_tags: int
-) -> Generator[tuple, None, None]:
+) -> Generator[tuple[Any, ...], None, None]:
     yield from product(range(num_tags), repeat=sequence_length)
 
 
@@ -39,7 +41,7 @@ def compute_log_normalizer_by_brute_force(log_potentials: torch.Tensor) -> torch
 
 def compute_best_tag_indices_by_brute_force(
     log_potentials: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     batch_size, sequence_length, num_tags, _ = log_potentials.size()
     best_tag_indices = torch.tensor([[-1] * sequence_length for _ in range(batch_size)])
     max_scores = torch.tensor([NINF] * batch_size)

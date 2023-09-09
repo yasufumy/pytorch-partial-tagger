@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import pytest
 import spacy
 
-from partial_tagger.data import Span, Tag
+from partial_tagger.data.core import Span, Tag
 from partial_tagger.matchers import SpacyMatcher
 
 if TYPE_CHECKING:

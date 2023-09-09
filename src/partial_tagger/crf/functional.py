@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, cast
 
 import torch
 
@@ -57,7 +57,9 @@ def marginal_log_likelihood(
 
 
 def normalize(
-    log_potentials: torch.Tensor, matmul: Matmul, normalizer: Callable
+    log_potentials: torch.Tensor,
+    matmul: Matmul,
+    normalizer: Callable[[torch.Tensor, int], torch.Tensor],
 ) -> torch.Tensor:
     """Normalizes log potentials based on normalizer.
 
@@ -89,7 +91,9 @@ def normalize(
     for _ in range(n):
         log_potentials = matmul(log_potentials[:, 0::2], log_potentials[:, 1::2])
 
-    return normalizer(normalizer(log_potentials, dim=-2), dim=-1).squeeze(dim=-1)
+    return normalizer(
+        normalizer(log_potentials, dim=-2), dim=-1  # type:ignore
+    ).squeeze(dim=-1)
 
 
 def log_matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -118,7 +122,9 @@ def max_matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     Returns:
         a computed tensor.
     """
-    return torch.max(a.unsqueeze(-1) + b.unsqueeze(-3), dim=-2).values
+    return cast(
+        torch.Tensor, torch.max(a.unsqueeze(-1) + b.unsqueeze(-3), dim=-2).values
+    )
 
 
 def forward_algorithm(log_potentials: torch.Tensor) -> torch.Tensor:
@@ -146,7 +152,7 @@ def amax(log_potentials: torch.Tensor) -> torch.Tensor:
     """
 
     def _amax(inputs: torch.Tensor, dim: int) -> torch.Tensor:
-        return torch.max(inputs, dim=dim).values
+        return cast(torch.Tensor, torch.max(inputs, dim=dim).values)
 
     return normalize(log_potentials, max_matmul, _amax)
 
