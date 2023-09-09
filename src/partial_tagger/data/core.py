@@ -503,7 +503,9 @@ class LabelSet:
             )
         ]
 
-        self.__label_ids = dict(zip(self.__labels, self.__start_indices))
+        self.__label_ids: dict[str, int] = dict(
+            zip(self.__labels, self.__start_indices)
+        )
 
     def __contains__(self, label: str) -> bool:
         i = bisect_left(self.__labels, label)
@@ -528,7 +530,7 @@ class LabelSet:
     def get_unit_index(self, label: str) -> int:
         return self.get_start_index(label) + 3
 
-    def get_labels(self) -> list:
+    def get_labels(self) -> list[str]:
         return self.__labels
 
     def get_label_size(self) -> int:

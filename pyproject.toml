@@ -59,18 +59,38 @@ select = [
   "W",  # pycodestyle warnings
   "F",  # pyflakes
   "I",  # isort
-  "C",  # flake8-comprehensions
+  "C4",  # flake8-comprehensions
   "B",  # flake8-bugbear
+  "TCH",  # flake8-type-checking
+  "TID",  # flake8-tidy-imports
+  "UP",  # pyupgrade
+  "PT",  # flake8-pytest-style
+  "C90",  # mccabe
+]
+ignore = [
+  "E501",  # Line length regulated by black
 ]
 src = ["src"]
 
 [tool.ruff.mccabe]
 max-complexity = 18
 
+[tool.ruff.isort]
+split-on-trailing-comma = false
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.flake8-type-checking]
+strict = true
+
 [tool.mypy]
+files = ["src", "tests"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["transformers"]
 ignore_missing_imports = true
-disallow_untyped_defs = true
-show_error_codes = true
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

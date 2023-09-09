@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -5,11 +8,10 @@ import torch
 
 from partial_tagger.crf import NINF
 from partial_tagger.crf import functional as F
+from tests import helpers
 
-from .. import helpers
 
-
-def test_log_likelihood_valid_as_probability(test_data_small: tuple) -> None:
+def test_log_likelihood_valid_as_probability(test_data_small: tuple[Any, ...]) -> None:
     (batch_size, sequence_length, num_tags), log_potentials = test_data_small
 
     total_log_p = torch.tensor([NINF] * batch_size)
@@ -21,7 +23,9 @@ def test_log_likelihood_valid_as_probability(test_data_small: tuple) -> None:
     assert torch.allclose(total_log_p.exp(), torch.ones_like(total_log_p))
 
 
-def test_marginal_log_likelihood_valid_as_probability(test_data_small: tuple) -> None:
+def test_marginal_log_likelihood_valid_as_probability(
+    test_data_small: tuple[Any, ...]
+) -> None:
     shape, log_potentials = test_data_small
 
     tag_bitmap = torch.ones(shape, dtype=torch.bool)
@@ -31,7 +35,7 @@ def test_marginal_log_likelihood_valid_as_probability(test_data_small: tuple) ->
 
 
 def test_marginal_log_likelihood_matches_log_likelihood_if_one_hot_tag_bitmap_is_given(
-    test_data_small: tuple,
+    test_data_small: tuple[Any, ...],
 ) -> None:
     shape, log_potentials = test_data_small
 
@@ -43,7 +47,7 @@ def test_marginal_log_likelihood_matches_log_likelihood_if_one_hot_tag_bitmap_is
 
 
 def test_forward_algorithm_returns_value_same_as_brute_force(
-    test_data_small: tuple,
+    test_data_small: tuple[Any, ...],
 ) -> None:
     _, log_potentials = test_data_small
 
@@ -53,7 +57,9 @@ def test_forward_algorithm_returns_value_same_as_brute_force(
     assert torch.allclose(log_Z, expected_log_Z)
 
 
-def test_amax_returns_value_same_as_brute_force(test_data_small: tuple) -> None:
+def test_amax_returns_value_same_as_brute_force(
+    test_data_small: tuple[Any, ...]
+) -> None:
     _, log_potentials = test_data_small
 
     max_score = F.amax(log_potentials)
@@ -64,7 +70,9 @@ def test_amax_returns_value_same_as_brute_force(test_data_small: tuple) -> None:
     assert torch.allclose(max_score, expected_max_score)
 
 
-def test_decode_returns_value_same_as_brute_force(test_data_small: tuple) -> None:
+def test_decode_returns_value_same_as_brute_force(
+    test_data_small: tuple[Any, ...]
+) -> None:
     _, log_potentials = test_data_small
 
     max_score, tag_indices = F.decode(log_potentials)
@@ -79,7 +87,7 @@ def test_decode_returns_value_same_as_brute_force(test_data_small: tuple) -> Non
 
 
 def test_sequence_score_computes_mask_correctly(
-    test_data_with_mask: tuple,
+    test_data_with_mask: tuple[Any, ...],
 ) -> None:
     _, log_potentials, tag_indices, mask = test_data_with_mask
 
@@ -95,7 +103,7 @@ def test_sequence_score_computes_mask_correctly(
     list(range(5)),
 )
 def test_multitag_sequence_score_correctly_masks_log_potentials(
-    test_data_with_mask: tuple, partial_index: int
+    test_data_with_mask: tuple[Any, ...], partial_index: int
 ) -> None:
     (_, _, num_tags), log_potentials, tag_indices, mask = test_data_with_mask
     tag_bitmap = F.to_tag_bitmap(tag_indices, num_tags, partial_index=partial_index)
@@ -110,7 +118,13 @@ def test_multitag_sequence_score_correctly_masks_log_potentials(
 
 
 @pytest.mark.parametrize(
-    "log_potentials, mask, start_constraints, end_constraints, transition_constraints",
+    (
+        "log_potentials",
+        "mask",
+        "start_constraints",
+        "end_constraints",
+        "transition_constraints",
+    ),
     [
         (
             torch.randn(3, 20, 5, 5),
@@ -181,7 +195,13 @@ def test_constrains_log_potentials(
 
 
 @pytest.mark.parametrize(
-    "log_potentials, mask, start_constraints, end_constraints, transition_constraints",
+    (
+        "log_potentials",
+        "mask",
+        "start_constraints",
+        "end_constraints",
+        "transition_constraints",
+    ),
     [
         (
             torch.randn(3, 20, 5, 5, requires_grad=True),
@@ -225,7 +245,7 @@ def test_constrained_decode_returns_expected_tag_indices_under_constraints(
 
 
 @pytest.mark.parametrize(
-    "tag_indices, num_tags, expected, partial_index",
+    ("tag_indices", "num_tags", "expected", "partial_index"),
     [
         (
             torch.tensor([[0, 1, 2, 3, 4]]),

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING
 
-from spacy import Language
+from partial_tagger.data.core import Span, Tag
 
-from partial_tagger.data import Span, Tag
+if TYPE_CHECKING:
+    from spacy.language import Language
 
 
 class BaseMatcher(metaclass=ABCMeta):

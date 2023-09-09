@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import torch
-from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
+from partial_tagger.data.core import Alignments
 
-from partial_tagger.data import Alignments, Tag
+if TYPE_CHECKING:
+    import torch
+    from transformers import PreTrainedTokenizerFast
+
+    from partial_tagger.data.core import Tag
 
 
 @dataclass

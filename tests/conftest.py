@@ -1,16 +1,20 @@
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 import torch
 
 from partial_tagger.crf import NINF
 
 
-@pytest.fixture
+@pytest.fixture()
 def num_tags() -> int:
     return 5
 
 
-@pytest.fixture
-def test_data_for_shape_check(num_tags: int) -> tuple:
+@pytest.fixture()
+def test_data_for_shape_check(num_tags: int) -> tuple[Any, ...]:
     batch_size = 3
     sequence_length = 20
     embedding_size = 128
@@ -30,8 +34,8 @@ def test_data_for_shape_check(num_tags: int) -> tuple:
     )
 
 
-@pytest.fixture
-def test_data_small(num_tags: int) -> tuple:
+@pytest.fixture()
+def test_data_small(num_tags: int) -> tuple[Any, ...]:
     batch_size = 2
     sequence_length = 3
     log_potentials = torch.randn(batch_size, sequence_length, num_tags, num_tags)
@@ -41,7 +45,7 @@ def test_data_small(num_tags: int) -> tuple:
     return (batch_size, sequence_length, num_tags), log_potentials
 
 
-@pytest.fixture
+@pytest.fixture()
 def transitions() -> torch.Tensor:
     return torch.tensor(
         [
@@ -55,8 +59,8 @@ def transitions() -> torch.Tensor:
     )
 
 
-@pytest.fixture
-def test_data_by_hand(num_tags: int) -> tuple:
+@pytest.fixture()
+def test_data_by_hand(num_tags: int) -> tuple[Any, ...]:
     batch_size = 2
     sequence_length = 3
     logits = torch.tensor(
@@ -77,8 +81,8 @@ def test_data_by_hand(num_tags: int) -> tuple:
     return (batch_size, sequence_length, num_tags), logits, tag_indices
 
 
-@pytest.fixture
-def test_data_with_mask(num_tags: int) -> tuple:
+@pytest.fixture()
+def test_data_with_mask(num_tags: int) -> tuple[Any, ...]:
     batch_size = 3
     sequence_length = 20
     log_potentials = torch.randn(batch_size, sequence_length, num_tags, num_tags)

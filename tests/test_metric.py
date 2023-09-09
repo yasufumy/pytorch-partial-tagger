@@ -7,7 +7,7 @@ from partial_tagger.metric import Metric
 
 
 @pytest.mark.parametrize(
-    "predictions, ground_truths, expected",
+    ("predictions", "ground_truths", "expected"),
     [
         (
             ({Tag(span=Span(start=0, length=5), label="LOC")},),

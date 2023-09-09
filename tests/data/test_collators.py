@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 from transformers import AutoTokenizer
 
-from partial_tagger.data import LabelSet, Span, Tag
 from partial_tagger.data.collators import TransformerCollator
+from partial_tagger.data.core import LabelSet, Span, Tag
 
 
-@pytest.fixture
+@pytest.fixture()
 def collator() -> TransformerCollator:
     return TransformerCollator(
         AutoTokenizer.from_pretrained("distilroberta-base"),
@@ -20,13 +20,13 @@ def collator() -> TransformerCollator:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def label_set() -> LabelSet:
     return LabelSet({"ORG", "LOC", "PER", "MISC"})
 
 
 @pytest.mark.parametrize(
-    "text, tag_indices, tags",
+    ("text", "tag_indices", "tags"),
     [
         (
             "Tokyo is the capital of Japan.",
@@ -57,7 +57,7 @@ def test_char_based_tags_are_valid(
 
 
 @pytest.mark.parametrize(
-    "text, char_based_tags, expected",
+    ("text", "char_based_tags", "expected"),
     [
         (
             "Tokyo is the capital of Japan.",
@@ -625,7 +625,7 @@ params = [
 ]
 
 
-@pytest.mark.parametrize("text, tags, expected", params)
+@pytest.mark.parametrize(("text", "tags", "expected"), params)
 def test_tag_bitmap_is_valid(
     label_set: LabelSet,
     collator: TransformerCollator,
