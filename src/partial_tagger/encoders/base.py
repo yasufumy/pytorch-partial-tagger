@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING
 
-import torch
 from torch.nn import Module
 
-from partial_tagger.data.core import LabelSet
+if TYPE_CHECKING:
+    import torch
+
+    from partial_tagger.data.core import LabelSet
 
 
 class BaseEncoder(Module, metaclass=ABCMeta):

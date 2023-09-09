@@ -4,12 +4,12 @@ import torch
 from partial_tagger.crf import NINF
 
 
-@pytest.fixture
+@pytest.fixture()
 def num_tags() -> int:
     return 5
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_data_for_shape_check(num_tags: int) -> tuple:
     batch_size = 3
     sequence_length = 20
@@ -30,7 +30,7 @@ def test_data_for_shape_check(num_tags: int) -> tuple:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_data_small(num_tags: int) -> tuple:
     batch_size = 2
     sequence_length = 3
@@ -41,7 +41,7 @@ def test_data_small(num_tags: int) -> tuple:
     return (batch_size, sequence_length, num_tags), log_potentials
 
 
-@pytest.fixture
+@pytest.fixture()
 def transitions() -> torch.Tensor:
     return torch.tensor(
         [
@@ -55,7 +55,7 @@ def transitions() -> torch.Tensor:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_data_by_hand(num_tags: int) -> tuple:
     batch_size = 2
     sequence_length = 3
@@ -77,7 +77,7 @@ def test_data_by_hand(num_tags: int) -> tuple:
     return (batch_size, sequence_length, num_tags), logits, tag_indices
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_data_with_mask(num_tags: int) -> tuple:
     batch_size = 3
     sequence_length = 20

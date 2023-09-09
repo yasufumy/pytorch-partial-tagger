@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-import torch
-from torch import nn
-from transformers import AutoModel, AutoModelForTokenClassification, PreTrainedModel
+from typing import TYPE_CHECKING
 
-from partial_tagger.data.core import LabelSet
+from torch import nn
+from transformers import AutoModel, AutoModelForTokenClassification
+
 from partial_tagger.encoders.base import BaseEncoder, BaseEncoderFactory
+
+if TYPE_CHECKING:
+    import torch
+    from transformers import PreTrainedModel
+
+    from partial_tagger.data.core import LabelSet
 
 
 class TransformerModelEncoder(BaseEncoder):
@@ -33,7 +39,7 @@ class TransformerModelEncoder(BaseEncoder):
         hidden_size: int,
         dropout_prob: float = 0.2,
     ):
-        super(TransformerModelEncoder, self).__init__()
+        super().__init__()
 
         self.model = model
         self.linear = nn.Linear(embedding_size, hidden_size)
@@ -103,7 +109,7 @@ class TransformerModelWithHeadEncoder(BaseEncoder):
     """
 
     def __init__(self, model: AutoModelForTokenClassification):
-        super(TransformerModelWithHeadEncoder, self).__init__()
+        super().__init__()
 
         self.model = model
 

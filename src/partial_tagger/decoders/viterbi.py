@@ -31,7 +31,7 @@ class Constrainer(Module):
         end_states: list[bool],
         transitions: list[list[bool]],
     ):
-        super(Constrainer, self).__init__()
+        super().__init__()
 
         self.start_states = Parameter(torch.tensor(start_states), requires_grad=False)
         self.end_states = Parameter(torch.tensor(end_states), requires_grad=False)
@@ -71,7 +71,7 @@ class ViterbiDecoder(Module):
         padding_index: int = -1,
         constrainer: Constrainer | None = None,
     ) -> None:
-        super(ViterbiDecoder, self).__init__()
+        super().__init__()
 
         self.padding_index = padding_index
         self.constrainer = constrainer

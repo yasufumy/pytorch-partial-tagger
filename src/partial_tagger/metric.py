@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from partial_tagger.data import Tag
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from partial_tagger.data import Tag
 
 
 class Metric:

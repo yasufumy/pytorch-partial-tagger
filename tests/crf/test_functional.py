@@ -5,8 +5,7 @@ import torch
 
 from partial_tagger.crf import NINF
 from partial_tagger.crf import functional as F
-
-from .. import helpers
+from tests import helpers
 
 
 def test_log_likelihood_valid_as_probability(test_data_small: tuple) -> None:
@@ -110,7 +109,7 @@ def test_multitag_sequence_score_correctly_masks_log_potentials(
 
 
 @pytest.mark.parametrize(
-    "log_potentials, mask, start_constraints, end_constraints, transition_constraints",
+    ("log_potentials", "mask", "start_constraints", "end_constraints", "transition_constraints"),
     [
         (
             torch.randn(3, 20, 5, 5),
@@ -181,7 +180,7 @@ def test_constrains_log_potentials(
 
 
 @pytest.mark.parametrize(
-    "log_potentials, mask, start_constraints, end_constraints, transition_constraints",
+    ("log_potentials", "mask", "start_constraints", "end_constraints", "transition_constraints"),
     [
         (
             torch.randn(3, 20, 5, 5, requires_grad=True),
@@ -225,7 +224,7 @@ def test_constrained_decode_returns_expected_tag_indices_under_constraints(
 
 
 @pytest.mark.parametrize(
-    "tag_indices, num_tags, expected, partial_index",
+    ("tag_indices", "num_tags", "expected", "partial_index"),
     [
         (
             torch.tensor([[0, 1, 2, 3, 4]]),

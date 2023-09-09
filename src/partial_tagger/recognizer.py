@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-import torch
 from torch.utils.data import DataLoader
 
-from partial_tagger.data import Alignments, LabelSet, Tag
-from partial_tagger.data.collators import BaseCollator, Batch
-from partial_tagger.tagger import SequenceTagger
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    import torch
+
+    from partial_tagger.data import Alignments, LabelSet, Tag
+    from partial_tagger.data.collators import BaseCollator, Batch
+    from partial_tagger.tagger import SequenceTagger
 
 
 class Recognizer:

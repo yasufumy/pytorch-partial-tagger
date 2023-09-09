@@ -2,25 +2,20 @@ from __future__ import annotations
 
 import pytest
 
-from partial_tagger.data import (
-    Alignment,
-    LabelSet,
-    Span,
-    Tag,
-)
+from partial_tagger.data import Alignment, LabelSet, Span, Tag
 
 
-@pytest.fixture
+@pytest.fixture()
 def text() -> str:
     return "Tokyo is the capital of Japan."
 
 
-@pytest.fixture
+@pytest.fixture()
 def char_based_tags() -> set[Tag]:
     return {Tag.create(0, 5, "LOC"), Tag.create(24, 29, "LOC")}
 
 
-@pytest.fixture
+@pytest.fixture()
 def alignment() -> Alignment:
     # Tokenized by RoBERTa
     return Alignment(
@@ -71,7 +66,7 @@ def alignment() -> Alignment:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def truncated_alignment() -> Alignment:
     # Tokenized by RoBERTa
     return Alignment(
@@ -116,13 +111,13 @@ def truncated_alignment() -> Alignment:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def label_set() -> LabelSet:
     return LabelSet({"ORG", "PER"})
 
 
 @pytest.mark.parametrize(
-    "label, expected",
+    ("label", "expected"),
     [
         ("ORG", True),
         ("PER", True),

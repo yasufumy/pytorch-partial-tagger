@@ -17,7 +17,7 @@ class CRF(nn.Module):
     """
 
     def __init__(self, num_tags: int) -> None:
-        super(CRF, self).__init__()
+        super().__init__()
 
         self.transitions = nn.Parameter(torch.empty(num_tags, num_tags))
 

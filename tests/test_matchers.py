@@ -1,12 +1,16 @@
+from typing import TYPE_CHECKING
+
 import pytest
 import spacy
-from spacy.pipeline import EntityRuler
 
 from partial_tagger.data import Span, Tag
 from partial_tagger.matchers import SpacyMatcher
 
+if TYPE_CHECKING:
+    from spacy.pipeline import EntityRuler
 
-@pytest.fixture
+
+@pytest.fixture()
 def matcher() -> SpacyMatcher:
     nlp = spacy.blank("en")
     ruler: EntityRuler = nlp.add_pipe("entity_ruler")  # type:ignore

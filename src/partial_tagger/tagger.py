@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-import torch
+from typing import TYPE_CHECKING
+
 from torch.nn import Module
 
 from partial_tagger.crf.nn import CRF
-from partial_tagger.decoders import ViterbiDecoder
-from partial_tagger.encoders import BaseEncoder
+
+if TYPE_CHECKING:
+    import torch
+
+    from partial_tagger.decoders import ViterbiDecoder
+    from partial_tagger.encoders import BaseEncoder
 
 
 class SequenceTagger(Module):
@@ -22,7 +27,7 @@ class SequenceTagger(Module):
     """
 
     def __init__(self, encoder: BaseEncoder, decoder: ViterbiDecoder):
-        super(SequenceTagger, self).__init__()
+        super().__init__()
 
         self.encoder = encoder
         self.crf = CRF(encoder.get_hidden_size())

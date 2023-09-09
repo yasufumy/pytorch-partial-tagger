@@ -2,11 +2,10 @@ import pytest
 import torch
 
 from partial_tagger.crf.nn import CRF
+from tests import helpers
 
-from .. import helpers
 
-
-@pytest.fixture
+@pytest.fixture()
 def crf(num_tags: int) -> CRF:
     return CRF(num_tags).eval()
 

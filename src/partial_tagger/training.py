@@ -2,20 +2,26 @@ from __future__ import annotations
 
 import io
 import logging
-from collections.abc import Sequence
-from logging import Logger
+from typing import TYPE_CHECKING
 
 import torch
 from torch.utils.data import DataLoader
 
 from partial_tagger.crf import functional as F
-from partial_tagger.data import Alignments, LabelSet, Tag
-from partial_tagger.data.collators import BaseCollator, Batch, TrainingCollator
+from partial_tagger.data import LabelSet
+from partial_tagger.data.collators import TrainingCollator
 from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
-from partial_tagger.encoders import BaseEncoderFactory
 from partial_tagger.metric import Metric
 from partial_tagger.recognizer import Recognizer
 from partial_tagger.tagger import SequenceTagger
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from logging import Logger
+
+    from partial_tagger.data import Alignments, Tag
+    from partial_tagger.data.collators import BaseCollator, Batch
+    from partial_tagger.encoders import BaseEncoderFactory
 
 
 class SlantedTriangular:
