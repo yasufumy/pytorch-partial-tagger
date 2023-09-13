@@ -72,6 +72,7 @@ ignore = [
   "E501",  # Line length regulated by black
 ]
 src = ["src"]
+target-version = "py38"
 
 [tool.ruff.mccabe]
 max-complexity = 18
@@ -88,6 +89,7 @@ strict = true
 [tool.mypy]
 files = ["src", "tests"]
 strict = true
+python_version = "3.8"
 
 [[tool.mypy.overrides]]
 module = ["transformers"]
