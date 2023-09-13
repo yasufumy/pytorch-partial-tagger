@@ -4,13 +4,12 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from partial_tagger.data.core import Alignments
+from sequence_label.transformers import get_alignments
 
 if TYPE_CHECKING:
     import torch
+    from sequence_label import LabelAlignment, SequenceLabel
     from transformers import PreTrainedTokenizerFast
-
-    from partial_tagger.data.core import Tag
 
 
 @dataclass
@@ -31,7 +30,9 @@ class BaseCollator(metaclass=ABCMeta):
     """Base class for all collators."""
 
     @abstractmethod
-    def __call__(self, texts: tuple[str, ...]) -> tuple[Batch, Alignments]:
+    def __call__(
+        self, texts: tuple[str, ...]
+    ) -> tuple[Batch, tuple[LabelAlignment, ...]]:
         """Tokenizes given texts and encodes them into tensors. Also, provides an
         instance of Alignments based on the tokenization results.
 
@@ -62,20 +63,18 @@ class TransformerCollator(BaseCollator):
 
         self.__tokenizer = tokenizer
         self.__tokenizer_args = tokenizer_args or {
-            "return_offsets_mapping": True,
             "truncation": True,
             "return_tensors": "pt",
         }
-
-        if not self.__tokenizer_args.get("return_offsets_mapping", False):
-            raise ValueError("Set return_offsets_mapping to True")
 
         if self.__tokenizer_args.get("return_tensors", "") != "pt":
             raise ValueError("Set return_tensors to pt")
 
         self.__tokenizer_args.pop("return_tensors")
 
-    def __call__(self, texts: tuple[str, ...]) -> tuple[Batch, Alignments]:
+    def __call__(
+        self, texts: tuple[str, ...]
+    ) -> tuple[Batch, tuple[LabelAlignment, ...]]:
         """Tokenizes given texts and encodes them into tensors. Also, provides an
         instance of Alignments based on the tokenization results.
 
@@ -87,10 +86,7 @@ class TransformerCollator(BaseCollator):
         """
         temp = self.__tokenizer(texts, **self.__tokenizer_args)
 
-        alignments = Alignments.from_offset_mapping(
-            offset_mapping=temp.pop("offset_mapping"),
-            char_lengths=tuple(map(len, texts)),
-        )
+        alignments = get_alignments(batch_encoding=temp, lengths=list(map(len, texts)))
 
         batch_encoding = self.__tokenizer.pad(temp, return_tensors="pt")
         mask = batch_encoding.input_ids != self.__tokenizer.pad_token_id
@@ -109,10 +105,9 @@ class TrainingCollator:
         self.__collator = collator
 
     def __call__(
-        self, examples: list[tuple[str, set[Tag]]]
-    ) -> tuple[Batch, Alignments, tuple[set[Tag], ...]]:
-        texts, ground_truths = zip(*examples)
+        self, examples: list[tuple[str, SequenceLabel]]
+    ) -> tuple[Batch, tuple[LabelAlignment, ...], tuple[SequenceLabel, ...]]:
+        texts, labels = zip(*examples)
 
         batch, alignments = self.__collator(texts)
-
-        return batch, alignments, ground_truths
+        return batch, alignments, labels

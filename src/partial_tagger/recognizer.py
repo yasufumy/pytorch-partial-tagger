@@ -8,9 +8,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     import torch
+    from sequence_label import LabelAlignment, LabelSet, SequenceLabel
 
     from partial_tagger.data.collators import BaseCollator, Batch
-    from partial_tagger.data.core import Alignments, LabelSet, Tag
     from partial_tagger.tagger import SequenceTagger
 
 
@@ -37,7 +37,7 @@ class Recognizer:
 
     def __call__(
         self, texts: tuple[str, ...], batch_size: int, device: torch.device
-    ) -> tuple[set[Tag], ...]:
+    ) -> tuple[SequenceLabel, ...]:
         """Predicts character-based tags from given texts using a trained tagger.
 
         Args:
@@ -50,7 +50,7 @@ class Recognizer:
             for each input text.
 
         """
-        dataloader: Sequence[tuple[Batch, Alignments]] = DataLoader(
+        dataloader: Sequence[tuple[Batch, tuple[LabelAlignment, ...]]] = DataLoader(
             texts,  # type: ignore
             collate_fn=self.__collator,  # type:ignore
             batch_size=batch_size,
@@ -59,17 +59,15 @@ class Recognizer:
 
         tagger = self.__tagger.eval().to(device)
 
-        predictions: list[set[Tag]] = []
+        predictions: list[SequenceLabel] = []
         for batch, alignments in dataloader:
             batch = batch.to(device)
 
             tag_indices = tagger.predict(batch.tagger_inputs, batch.mask)
 
             predictions.extend(
-                alignments.create_char_based_tags(
-                    tag_indices=tag_indices.tolist(),
-                    label_set=self.__label_set,
-                    padding_index=tagger.padding_index,
+                self.__label_set.decode(
+                    tag_indices=tag_indices.tolist(), alignments=alignments
                 )
             )
 

@@ -9,9 +9,8 @@ from transformers import AutoModel, AutoModelForTokenClassification
 from partial_tagger.encoders.base import BaseEncoder, BaseEncoderFactory
 
 if TYPE_CHECKING:
+    from sequence_label import LabelSet
     from transformers import PreTrainedModel
-
-    from partial_tagger.data.core import LabelSet
 
 
 class TransformerModelEncoder(BaseEncoder):
@@ -92,7 +91,7 @@ class TransformerModelEncoderFactory(BaseEncoderFactory):
         return TransformerModelEncoder(
             model,
             model.config.hidden_size,
-            label_set.get_tag_size(),
+            label_set.state_size,
             self.__dropout_prob,
         )
 
@@ -157,7 +156,7 @@ class TransformerModelWithHeadEncoderFactory(BaseEncoderFactory):
         """
         model = AutoModelForTokenClassification.from_pretrained(
             self.__model_name,
-            num_labels=label_set.get_tag_size(),
+            num_labels=label_set.state_size,
             hidden_dropout_prob=self.__dropout_prob,
         )
         return TransformerModelWithHeadEncoder(model)

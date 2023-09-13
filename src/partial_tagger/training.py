@@ -5,12 +5,13 @@ import logging
 from typing import TYPE_CHECKING
 
 import torch
+from sequence_label import LabelSet, SequenceLabel
+from sequence_label.core import Base
 from torch.nn.utils.clip_grad import clip_grad_value_
 from torch.utils.data import DataLoader
 
 from partial_tagger.crf import functional as F
 from partial_tagger.data.collators import TrainingCollator
-from partial_tagger.data.core import LabelSet
 from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
 from partial_tagger.metric import Metric
 from partial_tagger.recognizer import Recognizer
@@ -20,8 +21,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from logging import Logger
 
+    from sequence_label import LabelAlignment
+
     from partial_tagger.data.collators import BaseCollator, Batch
-    from partial_tagger.data.core import Alignments, Tag
     from partial_tagger.encoders.base import BaseEncoderFactory
 
 
@@ -92,6 +94,21 @@ def compute_partially_supervised_loss(
     return supervised_loss + balancing_coefficient * expected_entity_ratio_loss
 
 
+def create_tag_bitmap(
+    label_set: LabelSet,
+    labels: tuple[SequenceLabel, ...],
+    alignments: tuple[LabelAlignment, ...],
+    device: torch.device,
+) -> torch.Tensor:
+    tag_bitmap = label_set.encode_to_tag_bitmap(labels=labels, alignments=alignments)
+    for bitmap, alignment in zip(tag_bitmap, alignments):
+        for i, length in enumerate(alignment.get_span_lengths(Base.SOURCE)):
+            if length == 0 or not bitmap[i][label_set.outside_index]:
+                continue
+            bitmap[i][:] = [True] * label_set.state_size
+    return torch.tensor(tag_bitmap, device=device)
+
+
 class Trainer:
     """A trainer for fitting the parameters of a tagger based on a given dataset.
 
@@ -110,8 +127,8 @@ class Trainer:
 
     def __call__(
         self,
-        train_dataset: list[tuple[str, set[Tag]]],
-        validation_dataset: list[tuple[str, set[Tag]]],
+        train_dataset: list[tuple[str, SequenceLabel]],
+        validation_dataset: list[tuple[str, SequenceLabel]],
         device: torch.device,
         batch_size: int = 15,
         num_epochs: int = 20,
@@ -157,21 +174,19 @@ class Trainer:
             logger.addHandler(logging.StreamHandler())
 
         # Create a label_set
-        labels = set()
-        for _, tags in train_dataset:
-            for tag in tags:
-                if tag.label not in labels:
-                    labels.add(tag.label)
-        label_set = LabelSet(labels)
+        label_set = LabelSet(
+            labels={tag.label for _, label in train_dataset for tag in label.tags},
+            padding_index=padding_index,
+        )
 
         tagger = SequenceTagger(
             self.__encoder_factory.create(label_set),
             ViterbiDecoder(
                 padding_index,
                 Constrainer(
-                    label_set.get_start_states(),
-                    label_set.get_end_states(),
-                    label_set.get_transitions(),
+                    label_set.start_states,
+                    label_set.end_states,
+                    label_set.transitions,
                 ),
             ),
         )
@@ -180,15 +195,15 @@ class Trainer:
         collator = TrainingCollator(self.__collator)
 
         train_dataloader: Sequence[
-            tuple[Batch, Alignments, tuple[set[Tag], ...]]
-        ] = DataLoader(
+            tuple[Batch, tuple[LabelAlignment, ...], tuple[SequenceLabel, ...]]
+        ] = DataLoader[tuple[str, SequenceLabel]](
             train_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
         )
         validation_dataloader: Sequence[
-            tuple[Batch, Alignments, tuple[set[Tag], ...]]
-        ] = DataLoader(
+            tuple[Batch, tuple[LabelAlignment, ...], tuple[SequenceLabel, ...]]
+        ] = DataLoader[tuple[str, SequenceLabel]](
             validation_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
@@ -209,7 +224,7 @@ class Trainer:
             epoch_loss = 0.0
             tagger.train()
 
-            for batch, alignments, ground_truths in train_dataloader:
+            for batch, alignments, labels in train_dataloader:
                 batch = batch.to(device)
 
                 optimizer.zero_grad()
@@ -218,14 +233,14 @@ class Trainer:
 
                 loss = compute_partially_supervised_loss(
                     log_potentials=log_potentials,
-                    tag_bitmap=torch.tensor(
-                        alignments.get_tag_bitmap(
-                            tags_batch=ground_truths, label_set=label_set
-                        ),
+                    tag_bitmap=create_tag_bitmap(
+                        label_set=label_set,
+                        labels=labels,
+                        alignments=alignments,
                         device=device,
                     ),
                     mask=batch.mask,
-                    outside_index=label_set.get_outside_index(),
+                    outside_index=label_set.outside_index,
                     target_entity_ratio=target_entity_ratio,
                     entity_ratio_margin=entity_ratio_margin,
                     balancing_coefficient=balancing_coefficient,
@@ -241,18 +256,16 @@ class Trainer:
 
             tagger.eval()
             metric = Metric()
-            for batch, alignments, ground_truths in validation_dataloader:
+            for batch, alignments, labels in validation_dataloader:
                 batch = batch.to(device)
 
                 tag_indices = tagger.predict(batch.tagger_inputs, batch.mask)
 
-                predictions = alignments.create_char_based_tags(
-                    tag_indices=tag_indices.tolist(),
-                    label_set=label_set,
-                    padding_index=tagger.padding_index,
+                predictions = label_set.decode(
+                    tag_indices=tag_indices.tolist(), alignments=alignments
                 )
 
-                metric(predictions, ground_truths)
+                metric(predictions, labels)
 
             scores = metric.get_scores()
 
@@ -260,7 +273,7 @@ class Trainer:
                 best_f1_score = scores["f1_score"]
                 best_tagger_state.truncate(0)
                 best_tagger_state.seek(0)
-                torch.save(tagger.state_dict(), best_tagger_state)
+                torch.save(obj=tagger.state_dict(), f=best_tagger_state)
 
             logger.info(
                 {

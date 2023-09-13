@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from partial_tagger.data.core import Tag
+    from sequence_label import SequenceLabel
 
 
 class Metric:
@@ -14,10 +14,12 @@ class Metric:
 
     def __call__(
         self,
-        predictions: tuple[set[Tag], ...],
-        ground_truths: tuple[set[Tag], ...],
+        predictions: tuple[SequenceLabel, ...],
+        ground_truths: tuple[SequenceLabel, ...],
     ) -> None:
-        for tags1, tags2 in zip(predictions, ground_truths):
+        for label1, label2 in zip(predictions, ground_truths):
+            tags1 = set(label1.tags)
+            tags2 = set(label2.tags)
             self.__tp += len(tags1 & tags2)
             self.__fp += len(tags1 - tags2)
             self.__fn += len(tags2 - tags1)

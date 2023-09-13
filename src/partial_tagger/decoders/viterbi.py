@@ -27,9 +27,9 @@ class Constrainer(Module):
 
     def __init__(
         self,
-        start_states: list[bool],
-        end_states: list[bool],
-        transitions: list[list[bool]],
+        start_states: tuple[bool, ...],
+        end_states: tuple[bool, ...],
+        transitions: tuple[tuple[bool, ...], ...],
     ):
         super().__init__()
 

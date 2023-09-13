@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from transformers import AutoTokenizer
 
 from partial_tagger.data.collators import TransformerCollator
-from partial_tagger.data.core import Span, Tag
 from partial_tagger.encoders.transformer import (
     TransformerModelEncoderFactory,
     TransformerModelWithHeadEncoderFactory,
@@ -14,20 +13,6 @@ from partial_tagger.training import Trainer
 
 if TYPE_CHECKING:
     from partial_tagger.encoders.base import BaseEncoderFactory
-
-
-def create_tag(start: int, length: int, label: str) -> Tag:
-    """Creates a tag.
-
-    Args:
-        start: An integer representing a start index of a tag.
-        length: An integer representing length of a tag.
-        label: A string representing a label of a tag.
-
-    Returns:
-        An instance of Tag.
-    """
-    return Tag(Span(start, length), label)
 
 
 def create_trainer(
