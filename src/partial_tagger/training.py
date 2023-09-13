@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 import torch
 from sequence_label import LabelSet, SequenceLabel
@@ -196,14 +196,14 @@ class Trainer:
 
         train_dataloader: Sequence[
             tuple[Batch, tuple[LabelAlignment, ...], tuple[SequenceLabel, ...]]
-        ] = DataLoader[tuple[str, SequenceLabel]](
+        ] = DataLoader[Tuple[str, SequenceLabel]](
             train_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
         )
         validation_dataloader: Sequence[
             tuple[Batch, tuple[LabelAlignment, ...], tuple[SequenceLabel, ...]]
-        ] = DataLoader[tuple[str, SequenceLabel]](
+        ] = DataLoader[Tuple[str, SequenceLabel]](
             validation_dataset,  # type:ignore
             collate_fn=collator,
             batch_size=batch_size,
