@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, List, cast
 
 from sequence_label import SequenceLabel
 from sequence_label.core import TagDict
@@ -30,4 +30,4 @@ class SpacyMatcher(BaseMatcher):
             tags.append(
                 {"start": ent.start_char, "end": ent.end_char, "label": ent.label_}
             )
-        return SequenceLabel.from_dict(tags=cast(list[TagDict], tags), size=len(text))
+        return SequenceLabel.from_dict(tags=cast(List[TagDict], tags), size=len(text))
