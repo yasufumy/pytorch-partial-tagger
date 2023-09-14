@@ -23,9 +23,10 @@ from contextlib import contextmanager
 
 import numpy as np
 import torch
+from sequence_label import SequenceLabel
 
 from partial_tagger.metric import Metric
-from partial_tagger.utils import create_tag,  create_trainer
+from partial_tagger.utils import create_trainer
 ```
 
 ## Define utility functions
@@ -74,7 +75,7 @@ def get_logger(log_name, log_file):
 
 ## Prepare datasets
 
-We will prepare our datasets. Each item of the datasets must have a string and tags. A string represents `text` below. Tags represent the collection of a tag, where each tag has a start, a length, and a label, which are defined as `tags` below. A start represents a position in text where a tag starts. A length represents a distance in text between the beginning of a tag and the end of a tag. A label represents what you want to assign to a span of text defined by a start and a length.
+We will prepare our datasets. Each item of the datasets must have a string and a sequence label. A string represents `text` below. A sequence label represent the collection of a tag, where each tag has a start, a length, and a label, which are defined as `label` below. A start represents a position in text where a tag starts. A length represents a distance in text between the beginning of a tag and the end of a tag. A label represents what you want to assign to a span of text defined by a start and a length.
 
 
 ```py
@@ -93,16 +94,17 @@ def load_dataset(path: str):
                 mapping[i] = now
                 now += len(token) + 1  # Add one for a space
 
-            tags = {
-                create_tag(
-                    mapping[annotation["start"]],
-                    len(annotation["mention"]),
-                    annotation["type"],
-                )
-                for annotation in data["gold_annotations"]
-            }
+            label = SequenceLabel.from_dict(
+                tags=[
+                    {
+                        "start": mapping[annotation["start"]],
+                        "end": len(annotation["mention"])},
+                        "label": annotation["type"]
+                ],
+                size=len(text)
+            )
 
-            dataset.append((text, tags))
+            dataset.append((text, label))
 
     return dataset
 
