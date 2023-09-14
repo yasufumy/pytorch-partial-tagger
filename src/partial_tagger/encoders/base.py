@@ -7,8 +7,7 @@ from torch.nn import Module
 
 if TYPE_CHECKING:
     import torch
-
-    from partial_tagger.data.core import LabelSet
+    from sequence_label import LabelSet
 
 
 class BaseEncoder(Module, metaclass=ABCMeta):

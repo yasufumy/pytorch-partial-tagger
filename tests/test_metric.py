@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
+from sequence_label import SequenceLabel
 
-from partial_tagger.data.core import Span, Tag
 from partial_tagger.metric import Metric
 
 
@@ -10,15 +10,23 @@ from partial_tagger.metric import Metric
     ("predictions", "ground_truths", "expected"),
     [
         (
-            ({Tag(span=Span(start=0, length=5), label="LOC")},),
-            ({Tag(span=Span(start=0, length=5), label="LOC")},),
+            (
+                SequenceLabel.from_dict(
+                    [{"start": 0, "end": 5, "label": "LOC"}], size=10
+                ),
+            ),
+            (
+                SequenceLabel.from_dict(
+                    [{"start": 0, "end": 5, "label": "LOC"}], size=10
+                ),
+            ),
             {"f1_score": 1.0, "precision": 1.0, "recall": 1.0},
         )
     ],
 )
 def test_metrics_are_valid(
-    predictions: tuple[set[Tag], ...],
-    ground_truths: tuple[set[Tag], ...],
+    predictions: tuple[SequenceLabel, ...],
+    ground_truths: tuple[SequenceLabel, ...],
     expected: dict[str, float],
 ) -> None:
     metric = Metric()

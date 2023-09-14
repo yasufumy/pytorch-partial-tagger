@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 import spacy
+from sequence_label import SequenceLabel
 
-from partial_tagger.data.core import Span, Tag
 from partial_tagger.matchers import SpacyMatcher
 
 if TYPE_CHECKING:
@@ -22,7 +22,13 @@ def matcher() -> SpacyMatcher:
 
 def test_matches_valid_tags(matcher: SpacyMatcher) -> None:
     text = "Tokyo is the capital of Japan."
-    expected = {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")}
+    expected = SequenceLabel.from_dict(
+        [
+            {"start": 0, "end": 5, "label": "LOC"},
+            {"start": 24, "end": 29, "label": "LOC"},
+        ],
+        size=len(text),
+    )
 
     tags = matcher(text)
 

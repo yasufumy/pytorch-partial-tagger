@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, cast
 
-from partial_tagger.data.core import Span, Tag
+from sequence_label import SequenceLabel
+from sequence_label.core import TagDict
 
 if TYPE_CHECKING:
     from spacy.language import Language
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
 
 class BaseMatcher(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, text: str) -> set[Tag]:
+    def __call__(self, text: str) -> SequenceLabel:
         raise NotImplementedError
 
 
@@ -22,9 +23,11 @@ class SpacyMatcher(BaseMatcher):
 
         self.__nlp = nlp
 
-    def __call__(self, text: str) -> set[Tag]:
+    def __call__(self, text: str) -> SequenceLabel:
         doc = self.__nlp(text)
         tags = []
         for ent in doc.ents:
-            tags.append(Tag(Span(ent.start_char, len(ent.text)), ent.label_))
-        return set(tags)
+            tags.append(
+                {"start": ent.start_char, "end": ent.end_char, "label": ent.label_}
+            )
+        return SequenceLabel.from_dict(tags=cast(List[TagDict], tags), size=len(text))

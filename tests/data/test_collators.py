@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import pytest
+import torch
+from sequence_label import LabelSet, SequenceLabel
 from transformers import AutoTokenizer
 
 from partial_tagger.data.collators import TransformerCollator
-from partial_tagger.data.core import LabelSet, Span, Tag
+from partial_tagger.training import create_tag_bitmap
 
 
 @pytest.fixture()
@@ -26,19 +28,46 @@ def label_set() -> LabelSet:
 
 
 @pytest.mark.parametrize(
-    ("text", "tag_indices", "tags"),
+    ("text", "tag_indices", "expected"),
     [
         (
             "Tokyo is the capital of Japan.",
             [[0, 1, 3, 0, 0, 0, 0, 4, 0, 0]],
-            {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")},
+            (
+                SequenceLabel.from_dict(
+                    [
+                        {"start": 0, "end": 5, "label": "LOC"},
+                        {"start": 24, "end": 29, "label": "LOC"},
+                    ],
+                    size=30,
+                ),
+            ),
         ),
         (
             "John Doe",
             [[0, 16, 16, 0]],
-            {Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER")},
+            (
+                SequenceLabel.from_dict(
+                    [
+                        {"start": 0, "end": 4, "label": "PER"},
+                        {"start": 5, "end": 8, "label": "PER"},
+                    ],
+                    size=8,
+                ),
+            ),
         ),
-        ("John Doe", [[0, 13, 15, 0]], {Tag(Span(0, 8), "PER")}),
+        (
+            "John Doe",
+            [[0, 13, 15, 0]],
+            (
+                SequenceLabel.from_dict(
+                    [
+                        {"start": 0, "end": 8, "label": "PER"},
+                    ],
+                    size=8,
+                ),
+            ),
+        ),
     ],
 )
 def test_char_based_tags_are_valid(
@@ -46,56 +75,28 @@ def test_char_based_tags_are_valid(
     label_set: LabelSet,
     text: str,
     tag_indices: list[list[int]],
-    tags: set[Tag],
+    expected: tuple[SequenceLabel, ...],
 ) -> None:
     _, alignments = collator((text,))
 
-    char_based_tags_batch = alignments.create_char_based_tags(tag_indices, label_set)
+    labels = label_set.decode(tag_indices=tag_indices, alignments=alignments)
 
-    assert len(char_based_tags_batch) == 1
-    assert char_based_tags_batch[0] == tags
-
-
-@pytest.mark.parametrize(
-    ("text", "char_based_tags", "expected"),
-    [
-        (
-            "Tokyo is the capital of Japan.",
-            {Tag(Span(0, 5), "LOC"), Tag(Span(24, 5), "LOC")},
-            [[0, 1, 3, -100, -100, -100, -100, 4, -100, 0]],
-        ),
-        (
-            "Tokyo is the capital of Japan." * 100,
-            {Tag(Span(0 + 30 * i, 5), "LOC") for i in range(100)}
-            | {Tag(Span(24 + 30 * i, 5), "LOC") for i in range(100)},
-            [
-                [0]
-                + [1, 3, -100, -100, -100, -100, 4, -100] * 63
-                + [1, 3, -100, -100, -100, -100]
-                + [0]
-            ],
-        ),
-    ],
-)
-def test_tag_indices_are_valid(
-    collator: TransformerCollator,
-    label_set: LabelSet,
-    text: str,
-    char_based_tags: set[Tag],
-    expected: list[list[int]],
-) -> None:
-    batch, alignments = collator((text,))
-    tag_indices = alignments.get_tag_indices(
-        tags_batch=(char_based_tags,), label_set=label_set
-    )
-
-    assert tag_indices == expected
+    assert labels == expected
 
 
 params = [
     (
         "The Tokyo Metropolitan Government is the government of the Tokyo Metropolis.",
-        {Tag(Span(4, 29), "ORG"), Tag(Span(4, 5), "LOC"), Tag(Span(59, 5), "LOC")},
+        (
+            SequenceLabel.from_dict(
+                [
+                    {"start": 4, "end": 29, "label": "ORG"},
+                    {"start": 4, "end": 9, "label": "LOC"},
+                    {"start": 59, "end": 64, "label": "LOC"},
+                ],
+                size=76,
+            ),
+        ),
         [
             [
                 [
@@ -388,7 +389,16 @@ params = [
     ),
     (
         "John Doe is a multiple-use placeholder name.",
-        {Tag(Span(0, 4), "PER"), Tag(Span(5, 3), "PER"), Tag(Span(0, 8), "PER")},
+        (
+            SequenceLabel.from_dict(
+                [
+                    {"start": 0, "end": 4, "label": "PER"},
+                    {"start": 5, "end": 8, "label": "PER"},
+                    {"start": 0, "end": 8, "label": "PER"},
+                ],
+                size=44,
+            ),
+        ),
         [
             [
                 [
@@ -625,16 +635,21 @@ params = [
 ]
 
 
-@pytest.mark.parametrize(("text", "tags", "expected"), params)
+@pytest.mark.parametrize(("text", "labels", "expected"), params)
 def test_tag_bitmap_is_valid(
     label_set: LabelSet,
     collator: TransformerCollator,
     text: str,
-    tags: set[Tag],
+    labels: tuple[SequenceLabel, ...],
     expected: list[list[list[bool]]],
 ) -> None:
     _, alignments = collator((text,))
 
-    tag_bitmap = alignments.get_tag_bitmap(tags_batch=(tags,), label_set=label_set)
+    tag_bitmap = create_tag_bitmap(
+        label_set=label_set,
+        labels=labels,
+        alignments=alignments,
+        device=torch.device("cpu"),
+    ).tolist()
 
     assert tag_bitmap == expected

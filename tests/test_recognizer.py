@@ -2,19 +2,26 @@ import random
 
 import numpy as np
 import torch
+from sequence_label import SequenceLabel
 
-from partial_tagger.data.core import Span, Tag
 from partial_tagger.utils import create_trainer
 
 
 def test_recognizer_outputs_valid_char_based_tags() -> None:
     text = "Tokyo is the capital of Japan."
-    tags = {
-        Tag(span=Span(start=0, length=5), label="LOC"),
-        Tag(span=Span(start=24, length=5), label="LOC"),
-    }
-    expected = ({Tag(span=Span(start=24, length=5), label="LOC")},)
-    dataset = [(text, tags)]
+    label = SequenceLabel.from_dict(
+        tags=[
+            {"start": 0, "end": 5, "label": "LOC"},
+            {"start": 24, "end": 29, "label": "LOC"},
+        ],
+        size=len(text),
+    )
+    expected = (
+        SequenceLabel.from_dict(
+            tags=[{"start": 24, "end": 29, "label": "LOC"}], size=len(text)
+        ),
+    )
+    dataset = [(text, label)]
     device = torch.device("cpu")
 
     # fix seed

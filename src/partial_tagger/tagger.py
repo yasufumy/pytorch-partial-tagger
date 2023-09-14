@@ -64,7 +64,3 @@ class SequenceTagger(Module):
              A [batch_size, sequence_length] integer tensor representing tag sequence.
         """
         return cast(torch.Tensor, self(inputs, mask)[1])
-
-    @property
-    def padding_index(self) -> int:
-        return self.decoder.padding_index
