@@ -13,27 +13,30 @@ Import all dependencies first:
 
 ```py
 import torch
+from sequence_label import SequenceLabel
 
-from partial_tagger.utils import Tag
 from partial_tagger.metric import Metric
 from partial_tagger.utils import create_trainer
 ```
 
-Prepare your own datasets. Each item of dataset must have a pair of a string and tags.
-A string represents text that you want to assign tags, which is defined as `text` below.
-Tags represent a hash set of a character-based tag, which has a start, a length, and a label, which are defined as `tags` below.
+Prepare your own datasets. Each item of dataset must have a pair of a string and a sequence label.
+A string represents text that you want to assign a label, which is defined as `text` below.
+A sequence label represent a set of a character-based tag, which has a start, a length, and a label, which are defined as `label` below.
 A start represents a position in the text where a tag starts.
 A length represents a distance in the text between the beginning of a tag and the end of a tag.
 A label represents what you want to assign to a span of the text defined by a start and a length.
 
 ```py
 text = "Tokyo is the capital of Japan."
-tags = {
-    Tag.create(start=0, end=5, label="LOC"),  # Tag for Tokyo
-    Tag.create(start=24, end=29, label="LOC")  # Tag for Japan
-}
+label = SequenceLabel.from_dict(
+    tags=[
+        {"start": 0,  "end": 5, "label": "LOC"},  # Tag for Tokyo
+        {"start": 24,  "end": 29, "label": "LOC"},  # Tag for Japan
+    ],
+    size=len(text),
+)
 
-train_dataset = [(text, tags), ...]
+train_dataset = [(text, label), ...]
 validation_dataset = [...]
 test_dataset = [...]
 ```

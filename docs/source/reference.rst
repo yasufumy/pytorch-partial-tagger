@@ -11,7 +11,6 @@ API References
     :titlesonly:
 
     reference/partial_tagger.crf
-    reference/partial_tagger.data
     reference/partial_tagger.data.collators
     reference/partial_tagger.decoders
     reference/partial_tagger.encoders
