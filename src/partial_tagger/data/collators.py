@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from sequence_label.transformers import get_alignments
+from sequence_label.transformers import create_alignments
 
 if TYPE_CHECKING:
     import torch
@@ -86,7 +86,11 @@ class TransformerCollator(BaseCollator):
         """
         temp = self.__tokenizer(texts, **self.__tokenizer_args)
 
-        alignments = get_alignments(batch_encoding=temp, lengths=list(map(len, texts)))
+        alignments = create_alignments(
+            batch_encoding=temp,
+            lengths=list(map(len, texts)),
+            padding_token=self.__tokenizer.pad_token,
+        )
 
         batch_encoding = self.__tokenizer.pad(temp, return_tensors="pt")
         mask = batch_encoding.input_ids != self.__tokenizer.pad_token_id
