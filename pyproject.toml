@@ -87,7 +87,11 @@ ban-relative-imports = "all"
 strict = true
 
 [tool.mypy]
-files = ["src", "tests"]
+files = [
+    "src",
+    "tests",
+    "docs/source/conf.py",
+]
 strict = true
 python_version = "3.8"
 
