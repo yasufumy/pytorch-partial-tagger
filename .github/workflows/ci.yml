@@ -31,4 +31,4 @@ jobs:
         mypy
     - name: Run tests
       run: |
-        pytest --cov=partial_tagger --cov-report=term-missing -vv
+        pytest
