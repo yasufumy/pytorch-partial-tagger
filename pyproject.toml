@@ -101,3 +101,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "--cov=partial_tagger --cov-report=term-missing -vv"
