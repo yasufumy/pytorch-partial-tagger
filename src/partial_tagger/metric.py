@@ -48,10 +48,19 @@ class Metric:
             recalls.append(metrics["recall"])
             f1_scores.append(metrics["f1_score"])
 
+        metrics = self.__compute_metrics(
+            tp=sum(self.__tp.values()),
+            fp=sum(self.__fp.values()),
+            fn=sum(self.__fn.values()),
+        )
+
         return {
-            "precision": mean(precisions),
-            "recall": mean(recalls),
-            "f1_score": mean(f1_scores),
+            "micro_precision": metrics["precision"],
+            "micro_recall": metrics["recall"],
+            "micro_f1_score": metrics["f1_score"],
+            "macro_precision": mean(precisions),
+            "macro_recall": mean(recalls),
+            "macro_f1_score": mean(f1_scores),
         }
 
     @staticmethod
