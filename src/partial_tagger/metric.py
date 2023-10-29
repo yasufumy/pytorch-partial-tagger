@@ -48,10 +48,19 @@ class Metric:
             recalls.append(metrics["recall"])
             f1_scores.append(metrics["f1_score"])
 
+        metrics = self.__compute_metrics(
+            tp=sum(self.__tp.values()),
+            fp=sum(self.__fp.values()),
+            fn=sum(self.__fn.values()),
+        )
+
         return {
-            "precision": mean(precisions),
-            "recall": mean(recalls),
-            "f1_score": mean(f1_scores),
+            "micro_precision": metrics["precision"],
+            "micro_recall": metrics["recall"],
+            "micro_f1_score": metrics["f1_score"],
+            "macro_precision": mean(precisions),
+            "macro_recall": mean(recalls),
+            "macro_f1_score": mean(f1_scores),
         }
 
     @staticmethod
@@ -63,15 +72,8 @@ class Metric:
 
     @staticmethod
     def __compute_metrics(tp: int, fp: int, fn: int) -> dict[str, float]:
-        if tp + fp != 0:
-            precision = tp / (tp + fp)
-        else:
-            precision = 0.0
-
-        if tp + fn != 0:
-            recall = tp / (tp + fn)
-        else:
-            recall = 0.0
+        precision = tp / (tp + fp) if tp + fp != 0 else 0.0
+        recall = tp / (tp + fn) if tp + fn != 0 else 0.0
 
         if precision + recall == 0.0:
             return {"f1_score": 0.0, "precision": 0.0, "recall": 0.0}

@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple, cast
+from typing import Callable, Optional, Tuple
 
 import torch
 
@@ -122,9 +122,7 @@ def max_matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     Returns:
         a computed tensor.
     """
-    return cast(
-        torch.Tensor, torch.max(a.unsqueeze(-1) + b.unsqueeze(-3), dim=-2).values
-    )
+    return torch.max(a.unsqueeze(-1) + b.unsqueeze(-3), dim=-2).values
 
 
 def forward_algorithm(log_potentials: torch.Tensor) -> torch.Tensor:
@@ -152,7 +150,7 @@ def amax(log_potentials: torch.Tensor) -> torch.Tensor:
     """
 
     def _amax(inputs: torch.Tensor, dim: int) -> torch.Tensor:
-        return cast(torch.Tensor, torch.max(inputs, dim=dim).values)
+        return torch.max(inputs, dim=dim).values
 
     return normalize(log_potentials, max_matmul, _amax)
 

@@ -20,7 +20,14 @@ from partial_tagger.metric import Metric
                     [{"start": 0, "end": 5, "label": "LOC"}], size=10
                 ),
             ),
-            {"f1_score": 1.0, "precision": 1.0, "recall": 1.0},
+            {
+                "micro_f1_score": 1.0,
+                "micro_precision": 1.0,
+                "micro_recall": 1.0,
+                "macro_f1_score": 1.0,
+                "macro_precision": 1.0,
+                "macro_recall": 1.0,
+            },
         )
     ],
 )
