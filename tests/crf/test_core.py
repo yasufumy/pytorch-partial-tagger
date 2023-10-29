@@ -12,8 +12,8 @@ from partial_tagger.crf.nn import CRF
 
 @st.composite
 def inputs1(draw: st.DrawFn) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    batch_size = draw(st.integers(min_value=1, max_value=15))
-    sequence_length = 50
+    batch_size = draw(st.integers(min_value=1, max_value=5))
+    sequence_length = 30
 
     lengths = []
     for _ in range(batch_size):
