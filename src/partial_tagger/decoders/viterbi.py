@@ -94,7 +94,7 @@ class ViterbiDecoder(Module):
 
         log_potentials.requires_grad_()
 
-        with torch.enable_grad():
+        with torch.enable_grad():  # type:ignore
             _, tag_indices = F.decode(log_potentials)
 
         return tag_indices * mask + self.padding_index * (~mask)
