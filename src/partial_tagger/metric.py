@@ -72,15 +72,8 @@ class Metric:
 
     @staticmethod
     def __compute_metrics(tp: int, fp: int, fn: int) -> dict[str, float]:
-        if tp + fp != 0:
-            precision = tp / (tp + fp)
-        else:
-            precision = 0.0
-
-        if tp + fn != 0:
-            recall = tp / (tp + fn)
-        else:
-            recall = 0.0
+        precision = tp / (tp + fp) if tp + fp != 0 else 0.0
+        recall = tp / (tp + fn) if tp + fn != 0 else 0.0
 
         if precision + recall == 0.0:
             return {"f1_score": 0.0, "precision": 0.0, "recall": 0.0}
