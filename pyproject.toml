@@ -64,6 +64,9 @@ select = [
   "B",  # flake8-bugbear
   "TCH",  # flake8-type-checking
   "TID",  # flake8-tidy-imports
+  "SIM", # flake8-simplify
+  "Q", # flake8-quotes
+  "PIE", # flake8-pie
   "UP",  # pyupgrade
   "PT",  # flake8-pytest-style
   "C90",  # mccabe
