@@ -3,12 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, Parameter
 
-from partial_tagger.crf.nn import CRF
+from partial_tagger.crf import BaseCrfDistribution, Crf
 
 if TYPE_CHECKING:
-    from partial_tagger.decoders.viterbi import ViterbiDecoder
     from partial_tagger.encoders.base import BaseEncoder
 
 
@@ -25,16 +24,41 @@ class SequenceTagger(Module):
         decoder: A decoder module.
     """
 
-    def __init__(self, encoder: BaseEncoder, decoder: ViterbiDecoder):
+    def __init__(
+        self,
+        encoder: BaseEncoder,
+        padding_index: int,
+        start_states: tuple[bool, ...] | None = None,
+        end_states: tuple[bool, ...] | None = None,
+        transitions: tuple[tuple[bool, ...], ...] | None = None,
+    ):
         super().__init__()
 
         self.encoder = encoder
-        self.crf = CRF(encoder.get_hidden_size())
-        self.decoder = decoder
+        self.crf = Crf(encoder.get_hidden_size())
+        self.__padding_index = padding_index
+        self.start_constraints = (
+            Parameter(~torch.tensor(start_states), requires_grad=False)
+            if start_states is not None
+            else None
+        )
+        self.end_constraints = (
+            Parameter(~torch.tensor(end_states), requires_grad=False)
+            if end_states is not None
+            else None
+        )
+        self.transition_constraints = (
+            Parameter(~torch.tensor(transitions), requires_grad=False)
+            if transitions is not None
+            else None
+        )
 
     def forward(
-        self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        self,
+        inputs: dict[str, torch.Tensor],
+        mask: torch.Tensor,
+        constrain: bool = False,
+    ) -> BaseCrfDistribution:
         """Computes log potentials and tag sequence.
 
         Args:
@@ -47,20 +71,23 @@ class SequenceTagger(Module):
             The float tensor representing log potentials and
             the integer tensor representing tag sequence.
         """
-        log_potentials = self.crf(self.encoder(inputs), mask)
-        tag_indices = self.decoder(log_potentials, mask)
-        return log_potentials, tag_indices
+        if constrain:
+            dist = self.crf(
+                logits=self.encoder(inputs),
+                mask=mask,
+                start_constraints=self.start_constraints,
+                end_constraints=self.end_constraints,
+                transition_constraints=self.transition_constraints,
+            )
+        else:
+            dist = self.crf(logits=self.encoder(inputs), mask=mask)
+
+        return cast(BaseCrfDistribution, dist)
 
     def predict(
         self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
     ) -> torch.Tensor:
-        """Predicts tag sequence from a given input.
+        dist = self(inputs=inputs, mask=mask, constrain=True)
+        tag_indices = cast(BaseCrfDistribution, dist).argmax
 
-        Args:
-            inputs: An inputs representing input data feeding into the encoder module.
-            mask: A [batch_size, sequence_length] boolean tensor.
-
-        Returns:
-             A [batch_size, sequence_length] integer tensor representing tag sequence.
-        """
-        return cast(torch.Tensor, self(inputs, mask)[1])
+        return tag_indices * mask + self.__padding_index * (~mask)

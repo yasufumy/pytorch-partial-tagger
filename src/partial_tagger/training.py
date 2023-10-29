@@ -10,9 +10,7 @@ from sequence_label.core import Base
 from torch.nn.utils.clip_grad import clip_grad_value_
 from torch.utils.data import DataLoader
 
-from partial_tagger.crf import functional as F
 from partial_tagger.data.collators import TrainingCollator
-from partial_tagger.decoders.viterbi import Constrainer, ViterbiDecoder
 from partial_tagger.metric import Metric
 from partial_tagger.recognizer import Recognizer
 from partial_tagger.tagger import SequenceTagger
@@ -23,6 +21,7 @@ if TYPE_CHECKING:
 
     from sequence_label import LabelAlignment
 
+    from partial_tagger.crf import BaseCrfDistribution
     from partial_tagger.data.collators import BaseCollator, Batch
     from partial_tagger.encoders.base import BaseEncoderFactory
 
@@ -42,9 +41,8 @@ class SlantedTriangular:
 
 
 def compute_partially_supervised_loss(
-    log_potentials: torch.Tensor,
+    crf_distribution: BaseCrfDistribution,
     tag_bitmap: torch.Tensor,
-    mask: torch.Tensor,
     outside_index: int,
     target_entity_ratio: float = 0.15,
     entity_ratio_margin: float = 0.05,
@@ -57,7 +55,6 @@ def compute_partially_supervised_loss(
             representing log potentials.
         tag_bitmap: A [batch_size, sequence_length, num_tag] boolean tensor indicating
             all active tags at each index.
-        mask: A [batch_size, sequence_length] boolean tensor.
         outside_index: An integer representing a non-entity index.
         target_entity_ratio: A float representing a target entity ratio
             for training. Defaults to 0.15.
@@ -69,15 +66,12 @@ def compute_partially_supervised_loss(
     Returns:
         A float representing loss.
     """
-    with torch.enable_grad():
+    with torch.enable_grad():  # type:ignore
         # log partition
-        log_Z = F.forward_algorithm(log_potentials)
+        log_partitions = crf_distribution.log_partitions
 
         # marginal probabilities
-        p = torch.autograd.grad(log_Z.sum(), log_potentials, create_graph=True)[0].sum(
-            dim=-1
-        )
-    p *= mask[..., None]
+        p = log_partitions.marginals
 
     expected_entity_count = (
         p[:, :, :outside_index].sum() + p[:, :, outside_index + 1 :].sum()
@@ -88,8 +82,8 @@ def compute_partially_supervised_loss(
         min=0,
     )
 
-    score = F.multitag_sequence_score(log_potentials, tag_bitmap, mask)
-    supervised_loss = (log_Z - score).mean()
+    score = crf_distribution.log_multitag_scores(tag_bitmap=tag_bitmap)
+    supervised_loss = (log_partitions.value - score).mean()
 
     return supervised_loss + balancing_coefficient * expected_entity_ratio_loss
 
@@ -180,15 +174,11 @@ class Trainer:
         )
 
         tagger = SequenceTagger(
-            self.__encoder_factory.create(label_set),
-            ViterbiDecoder(
-                padding_index,
-                Constrainer(
-                    label_set.start_states,
-                    label_set.end_states,
-                    label_set.transitions,
-                ),
-            ),
+            encoder=self.__encoder_factory.create(label_set),
+            padding_index=label_set.padding_index,
+            start_states=label_set.start_states,
+            end_states=label_set.end_states,
+            transitions=label_set.transitions,
         )
         tagger.to(device)
 
@@ -229,17 +219,16 @@ class Trainer:
 
                 optimizer.zero_grad()
 
-                log_potentials, _ = tagger(batch.tagger_inputs, batch.mask)
+                dist = tagger(batch.tagger_inputs, batch.mask)
 
                 loss = compute_partially_supervised_loss(
-                    log_potentials=log_potentials,
+                    crf_distribution=dist,
                     tag_bitmap=create_tag_bitmap(
                         label_set=label_set,
                         labels=labels,
                         alignments=alignments,
                         device=device,
                     ),
-                    mask=batch.mask,
                     outside_index=label_set.outside_index,
                     target_entity_ratio=target_entity_ratio,
                     entity_ratio_margin=entity_ratio_margin,
@@ -269,8 +258,8 @@ class Trainer:
 
             scores = metric.get_scores()
 
-            if best_f1_score < scores["f1_score"]:
-                best_f1_score = scores["f1_score"]
+            if best_f1_score < scores["micro_f1_score"]:
+                best_f1_score = scores["micro_f1_score"]
                 best_tagger_state.truncate(0)
                 best_tagger_state.seek(0)
                 torch.save(obj=tagger.state_dict(), f=best_tagger_state)
