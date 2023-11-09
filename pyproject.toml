@@ -98,6 +98,7 @@ files = [
     "docs/source/conf.py",
 ]
 strict = true
+pretty = true
 python_version = "3.8"
 
 [[tool.mypy.overrides]]
