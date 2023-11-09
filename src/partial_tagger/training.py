@@ -19,9 +19,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from logging import Logger
 
+    from sequence_classifier.crf import BaseCrfDistribution
     from sequence_label import LabelAlignment
 
-    from partial_tagger.crf import BaseCrfDistribution
     from partial_tagger.data.collators import BaseCollator, Batch
     from partial_tagger.encoders.base import BaseEncoderFactory
 
