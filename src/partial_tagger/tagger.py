@@ -89,4 +89,4 @@ class SequenceTagger(Module):
         dist = self(inputs=inputs, mask=mask, constrain=True)
         tag_indices = cast(BaseCrfDistribution, dist).argmax
 
-        return tag_indices * mask + self.__padding_index * (~mask)
+        return cast(torch.Tensor, tag_indices * mask + self.__padding_index * (~mask))

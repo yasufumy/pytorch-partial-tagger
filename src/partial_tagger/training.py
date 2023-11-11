@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Tuple, cast
 
 import torch
 from sequence_label import LabelSet, SequenceLabel
@@ -85,7 +85,10 @@ def compute_partially_supervised_loss(
     score = crf_distribution.log_multitag_scores(tag_bitmap=tag_bitmap)
     supervised_loss = (log_partitions.value - score).mean()
 
-    return supervised_loss + balancing_coefficient * expected_entity_ratio_loss
+    return cast(
+        torch.Tensor,
+        supervised_loss + balancing_coefficient * expected_entity_ratio_loss,
+    )
 
 
 def create_tag_bitmap(

@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, cast
 
 import torch
 
@@ -29,7 +29,7 @@ def log_likelihood(
     score = sequence_score(log_potentials, tag_indices, mask)
     log_Z = forward_algorithm(log_potentials)
 
-    return score - log_Z
+    return cast(torch.Tensor, score - log_Z)
 
 
 def marginal_log_likelihood(
@@ -53,7 +53,7 @@ def marginal_log_likelihood(
     score = multitag_sequence_score(log_potentials, tag_bitmap, mask)
     log_Z = forward_algorithm(log_potentials)
 
-    return score - log_Z
+    return cast(torch.Tensor, score - log_Z)
 
 
 def normalize(
@@ -91,9 +91,14 @@ def normalize(
     for _ in range(n):
         log_potentials = matmul(log_potentials[:, 0::2], log_potentials[:, 1::2])
 
-    return normalizer(
-        normalizer(log_potentials, dim=-2), dim=-1  # type:ignore
-    ).squeeze(dim=-1)
+    return cast(
+        torch.Tensor,
+        normalizer(
+            normalizer(log_potentials, dim=-2), dim=-1  # type:ignore
+        ).squeeze(
+            dim=-1
+        ),
+    )
 
 
 def log_matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -222,7 +227,7 @@ def constrain_log_potentials(
         batch_indices, end_indices
     ].masked_fill_(~end_constraints, NINF)
 
-    return constrained_log_potentials
+    return cast(torch.Tensor, constrained_log_potentials)
 
 
 def sequence_score(
@@ -258,7 +263,7 @@ def sequence_score(
         dim=1,
     )
 
-    return log_potentials.mul(tag_matrix).sum(dim=(1, 2, 3))
+    return cast(torch.Tensor, log_potentials.mul(tag_matrix).sum(dim=(1, 2, 3)))
 
 
 def multitag_sequence_score(
@@ -318,7 +323,7 @@ def to_tag_bitmap(
     )
 
     if partial_index is None:
-        return tag_bitmap
+        return cast(torch.Tensor, tag_bitmap)
 
     partial_mask = tag_indices.eq(partial_index)
-    return tag_bitmap | partial_mask[..., None]
+    return cast(torch.Tensor, tag_bitmap | partial_mask[..., None])

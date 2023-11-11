@@ -69,7 +69,7 @@ def test_log_likelihood(
     )
 
     actual.sum().neg().backward()
-    expected.sum().neg().backward()  # type:ignore
+    expected.sum().neg().backward()
     torch.testing.assert_close(crf.transitions.grad, crf2.transitions.grad)
 
 
@@ -112,5 +112,5 @@ def test_marginal_loglikelihood(
     torch.testing.assert_close(actual, expected)
 
     actual.sum().neg().backward()
-    expected.sum().neg().backward()  # type:ignore
+    expected.sum().neg().backward()
     torch.testing.assert_close(crf.transitions.grad, crf2.transitions.grad)
