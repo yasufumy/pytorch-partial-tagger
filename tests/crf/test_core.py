@@ -3,10 +3,10 @@ from __future__ import annotations
 import torch
 from hypothesis import given
 from hypothesis import strategies as st
+from sequence_classifier.crf import Crf
 from sequence_label import LabelSet
 
 from partial_tagger.crf import functional as F
-from partial_tagger.crf.core import Crf
 from partial_tagger.crf.nn import CRF
 
 

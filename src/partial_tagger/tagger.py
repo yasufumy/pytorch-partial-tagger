@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 import torch
+from sequence_classifier.crf import BaseCrfDistribution, Crf
 from torch.nn import Module, Parameter
-
-from partial_tagger.crf import BaseCrfDistribution, Crf
 
 if TYPE_CHECKING:
     from partial_tagger.encoders.base import BaseEncoder

@@ -9,6 +9,7 @@ dependencies = [
     "torch>=2.0.1",
     "spacy>=3.5.3",
     "sequence-label>=0.1.4",
+    "sequence-classifier>=0.1.1",
 ]
 requires-python = ">=3.8,<3.12"
 readme = "README.md"
@@ -97,6 +98,7 @@ files = [
     "docs/source/conf.py",
 ]
 strict = true
+pretty = true
 python_version = "3.8"
 
 [[tool.mypy.overrides]]
