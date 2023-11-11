@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 from torch import nn
 
@@ -55,6 +57,6 @@ class CRF(nn.Module):
         )
 
         mask_value = NINF * (~initial_mask)
-        mask = mask[..., None, None]
+        mask = cast(torch.Tensor, mask[..., None, None])
 
-        return log_potentials * mask + mask_value * (~mask)
+        return cast(torch.Tensor, log_potentials * mask + mask_value * (~mask))
