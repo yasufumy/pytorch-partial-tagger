@@ -81,18 +81,45 @@ def test_argmax(inputs: tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> None
     num_tags = logits.size(2)
     label_set = LabelSet({f"LABEL-{i}" for i in range((num_tags - 1) // 4)})
 
+    padding_index = -1
+
     crf = CRF(num_tags)
-    crf2 = Crf(num_tags)
+    crf2 = Crf(num_tags, padding_index=padding_index)
     crf2.transitions.data = crf.transitions.data
 
     S = torch.tensor(label_set.start_states)
     E = torch.tensor(label_set.end_states)
     T = torch.tensor(label_set.transitions)
 
-    torch.testing.assert_close(
-        crf2(logits, mask, ~S, ~E, ~T).argmax,
-        F.decode(F.constrain_log_potentials(crf(logits, mask), mask, S, E, T))[1],
-    )
+    tag_indices = F.decode(
+        F.constrain_log_potentials(crf(logits, mask), mask, S, E, T)
+    )[1]
+    tag_indices = tag_indices * mask + (~mask) * padding_index
+
+    torch.testing.assert_close(crf2(logits, mask, ~S, ~E, ~T).argmax, tag_indices)
+
+
+@given(inputs=inputs1())
+def test_marginals(inputs: tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> None:
+    logits, mask, _ = inputs
+
+    num_tags = logits.size(2)
+
+    crf = CRF(num_tags)
+    crf2 = Crf(num_tags)
+    crf2.transitions.data = crf.transitions.data
+
+    dist = crf2(logits, mask)
+
+    log_potentials = crf(logits, mask)
+    log_partitions = F.forward_algorithm(log_potentials)
+    with torch.enable_grad():  # type:ignore
+        (p,) = torch.autograd.grad(
+            log_partitions.sum(), log_potentials, create_graph=True
+        )
+        p *= mask[..., None, None]
+
+    torch.testing.assert_close(dist.marginals, p[:, 1:])
 
 
 @given(inputs=inputs2())

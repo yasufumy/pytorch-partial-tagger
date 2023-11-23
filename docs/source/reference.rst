@@ -10,9 +10,7 @@ API References
 .. toctree::
     :titlesonly:
 
-    reference/partial_tagger.crf
     reference/partial_tagger.data.collators
-    reference/partial_tagger.decoders
     reference/partial_tagger.encoders
     reference/partial_tagger.recognizer
     reference/partial_tagger.tagger
