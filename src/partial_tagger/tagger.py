@@ -34,8 +34,7 @@ class SequenceTagger(Module):
         super().__init__()
 
         self.encoder = encoder
-        self.crf = Crf(encoder.get_hidden_size())
-        self.__padding_index = padding_index
+        self.crf = Crf(encoder.get_hidden_size(), padding_index=padding_index)
         self.start_constraints = (
             Parameter(~torch.tensor(start_states), requires_grad=False)
             if start_states is not None
@@ -87,6 +86,4 @@ class SequenceTagger(Module):
         self, inputs: dict[str, torch.Tensor], mask: torch.Tensor
     ) -> torch.Tensor:
         dist = self(inputs=inputs, mask=mask, constrain=True)
-        tag_indices = cast(BaseCrfDistribution, dist).argmax
-
-        return cast(torch.Tensor, tag_indices * mask + self.__padding_index * (~mask))
+        return cast(BaseCrfDistribution, dist).argmax
