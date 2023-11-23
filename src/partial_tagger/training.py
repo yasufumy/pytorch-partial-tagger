@@ -71,7 +71,7 @@ def compute_partially_supervised_loss(
         log_partitions = crf_distribution.log_partitions
 
         # marginal probabilities
-        p = log_partitions.marginals
+        p = cast(torch.Tensor, log_partitions.marginals)
 
     expected_entity_count = (
         p[:, :, :outside_index].sum() + p[:, :, outside_index + 1 :].sum()
